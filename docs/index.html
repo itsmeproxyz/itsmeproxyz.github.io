@@ -29,6 +29,9 @@
 </head>
 <body>
 
+  <!-- Slowly moving colored glow behind the whole site (pure CSS, see .bg-fx in style.css) -->
+  <div class="bg-fx" aria-hidden="true"></div>
+
   <!-- ===================== NAVBAR (top menu) =====================
        Bootstrap "navbar". On small screens the links fold into a
        hamburger button (navbar-toggler) that opens #mainNav. -->
@@ -57,8 +60,10 @@
         <!-- Decorative background, drawn by drawHero() in js/art.js -->
         <canvas id="hero-canvas" aria-hidden="true"></canvas>
         <div class="container position-relative">
-          <span class="tag">Player online</span>
-          <h1 class="hero-title">proxy<span>z</span></h1>
+          <!-- tag-live = tag with a blinking green "online" dot -->
+          <span class="tag tag-live">Player online</span>
+          <!-- glitch = a short RGB-split flicker every few seconds; data-text is the text it copies -->
+          <h1 class="hero-title glitch" data-text="proxyz">proxy<span>z</span></h1>
           <p class="hero-lead">Dimas from Bekasi. MMORPG grinder at heart, tactical shooter on the side. Welcome to my corner of the internet.</p>
           <div class="d-flex flex-wrap gap-2">
             <a class="btn btn-accent btn-lg" href="#games">Browse my games</a>
@@ -70,17 +75,18 @@
       <!-- Bootstrap grid: row + col-md-4 = 3 columns on tablet/desktop, stacked on phones -->
       <div class="container pb-5">
         <div class="row g-3">
-          <div class="col-md-4">
+          <!-- "reveal" = slides in when scrolled into view (app.js, section 9) -->
+          <div class="col-md-4 reveal">
             <div class="stat-box">
               <div class="stat-k">Games in library</div>
               <!-- js/app.js writes the real number here (updateCounts) -->
               <div class="stat-v" id="game-count">–</div>
             </div>
           </div>
-          <div class="col-md-4">
+          <div class="col-md-4 reveal">
             <div class="stat-box"><div class="stat-k">Favorite genre</div><div class="stat-v">MMORPG</div></div>
           </div>
-          <div class="col-md-4">
+          <div class="col-md-4 reveal">
             <div class="stat-box"><div class="stat-k">Home base</div><div class="stat-v">Bekasi, ID</div></div>
           </div>
         </div>
@@ -95,7 +101,7 @@
 
         <div class="row g-4">
           <!-- Left: player card (col-lg-4 = one third width on large screens) -->
-          <div class="col-lg-4">
+          <div class="col-lg-4 reveal">
             <aside class="panel-box">
               <div class="badge-avatar" aria-hidden="true">P</div>
               <h2 class="h3 mt-3 mb-0">proxyz</h2>
@@ -109,7 +115,7 @@
           </div>
 
           <!-- Right: biography (col-lg-8 = two thirds width) -->
-          <div class="col-lg-8">
+          <div class="col-lg-8 reveal">
             <article class="panel-box">
               <h2 class="h4 text-accent mb-3">Biography</h2>
               <p>I'm Dimas, but online everyone knows me as <strong>proxyz</strong>. I'm based in Bekasi, and when I'm not at my desk I'm usually logged into some other world.</p>
@@ -200,6 +206,21 @@
                 <option value="shards">Shards</option>
                 <option value="grid">Crosshair grid</option>
               </select>
+            </div>
+            <!-- Card picture: app.js shrinks it in the browser before upload
+                 (onPickImage / resizeImage). No picture = the pattern above is used. -->
+            <div class="col-12">
+              <label for="f-image" class="form-label">Card picture <span class="text-secondary">(optional)</span></label>
+              <div class="pic-picker">
+                <div class="pic-preview" id="pic-preview">
+                  <span id="pic-empty">No picture yet – the pattern is used</span>
+                </div>
+                <div class="d-flex flex-column gap-2 flex-grow-1">
+                  <input id="f-image" type="file" class="form-control" accept="image/jpeg,image/png,image/webp">
+                  <div class="form-text">JPG, PNG or WebP. It's resized automatically before upload.</div>
+                  <button type="button" class="btn btn-sm btn-outline-danger align-self-start d-none" id="btn-remove-pic">Remove picture</button>
+                </div>
+              </div>
             </div>
             <div class="col-12">
               <label for="f-desc" class="form-label">Short description</label>

@@ -9,7 +9,8 @@ const sql = require('mssql');
 const crypto = require('crypto');
 
 const app = express();
-app.use(express.json({ limit: '20kb' }));
+// 1 MB is enough for one resized card picture (the website shrinks it first)
+app.use(express.json({ limit: '1mb' }));
 
 // --- CORS: only your website may call this API from a browser ---
 const allowed = (process.env.FRONTEND_ORIGIN || '').split(',').map(s => s.trim()).filter(Boolean);
@@ -71,12 +72,36 @@ function clean(body) {
   };
   if (!g.name) return { error: 'Game name is required' };
   if (g.year && !/^\d{4}$/.test(g.year)) return { error: 'Release year must be 4 digits' };
-  return { game: g };
+
+  // Picture (optional):
+  //   body.image = 'data:image/webp;base64,...' -> save this new picture
+  //   body.removeImage = true                   -> delete the current picture
+  //   neither                                    -> keep whatever is there
+  const img = cleanImage(body.image);
+  if (img.error) return { error: img.error };
+  return { game: g, image: img.value, removeImage: body.removeImage === true };
 }
 
-// Map DB columns -> the field names the website already uses
+/* ---------- Pictures ----------
+   We only accept small JPEG/PNG/WebP pictures sent as a data URL.
+   Anything else (wrong type, too big, broken text) is rejected. */
+const MAX_IMAGE_CHARS = 700000; // ~500 KB picture. The website sends ~30-150 KB.
+const IMAGE_RE = /^data:image\/(jpeg|png|webp);base64,([A-Za-z0-9+/]+={0,2})$/;
+
+function cleanImage(v) {
+  if (v == null || v === '') return { value: null };            // no new picture
+  if (typeof v !== 'string' || !IMAGE_RE.test(v)) return { error: 'Picture must be a JPG, PNG or WebP image' };
+  if (v.length > MAX_IMAGE_CHARS) return { error: 'Picture is too big (max ~500 KB)' };
+  return { value: v };
+}
+
+// Map DB columns -> the field names the website already uses.
+// The picture itself is NOT sent in the list (it would make the list huge);
+// the website asks for it separately at /api/games/:id/image.
 const SELECT_COLS = `Id AS id, Name AS name, Genre AS genre, Developer AS dev,
-  ReleaseYear AS year, Description AS [desc], Color AS color, Pattern AS shape`;
+  ReleaseYear AS year, Description AS [desc], Color AS color, Pattern AS shape,
+  CAST(CASE WHEN Image IS NULL THEN 0 ELSE 1 END AS BIT) AS hasImage,
+  DATEDIFF_BIG(SECOND, '2000-01-01', ImageUpdatedAt) AS imageAt`;
 
 // --- Routes ---
 app.get('/api/health', (req, res) => res.json({ ok: true }));
@@ -93,12 +118,36 @@ app.get('/api/games', async (req, res) => {
   }
 });
 
+// Public: one game's picture as a real image file (used by <img src="...">)
+app.get('/api/games/:id/image', async (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  if (!Number.isInteger(id)) return res.status(400).json({ error: 'Bad id' });
+  try {
+    const pool = await getPool();
+    const r = await pool.request().input('id', sql.Int, id)
+      .query('SELECT Image FROM dbo.Games WHERE Id=@id');
+    const dataUrl = r.recordset[0] && r.recordset[0].Image;
+    const m = dataUrl && IMAGE_RE.exec(dataUrl);
+    if (!m) return res.status(404).json({ error: 'No picture' });
+
+    // "data:image/webp;base64,AAAA" -> real bytes + the right Content-Type
+    res.set('Content-Type', 'image/' + m[1]);
+    // The website adds ?v=<last change> to the address, so the browser can
+    // safely keep this file for a long time and still see new uploads.
+    res.set('Cache-Control', 'public, max-age=31536000, immutable');
+    res.send(Buffer.from(m[2], 'base64'));
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Could not load picture' });
+  }
+});
+
 // Admin: check the key (used by the website's login box)
 app.get('/api/admin/check', requireAdmin, (req, res) => res.json({ ok: true }));
 
 // Admin: add game
 app.post('/api/games', requireAdmin, async (req, res) => {
-  const { game, error } = clean(req.body || {});
+  const { game, image, error } = clean(req.body || {});
   if (error) return res.status(400).json({ error });
   try {
     const pool = await getPool();
@@ -110,11 +159,15 @@ app.post('/api/games', requireAdmin, async (req, res) => {
       .input('desc', sql.NVarChar(240), game.desc || null)
       .input('color', sql.Char(7), game.color)
       .input('shape', sql.VarChar(12), game.shape)
-      .query(`INSERT INTO dbo.Games (Name, Genre, Developer, ReleaseYear, Description, Color, Pattern, SortOrder)
+      .input('image', sql.VarChar(sql.MAX), image)   // null = no picture
+      .query(`INSERT INTO dbo.Games (Name, Genre, Developer, ReleaseYear, Description, Color, Pattern, SortOrder,
+                                     Image, ImageUpdatedAt)
               OUTPUT INSERTED.Id AS id
               VALUES (@name, @genre, @dev, @year, @desc, @color, @shape,
-                      (SELECT ISNULL(MAX(SortOrder), 0) + 1 FROM dbo.Games))`);
-    res.status(201).json({ id: r.recordset[0].id, ...game });
+                      (SELECT ISNULL(MAX(SortOrder), 0) + 1 FROM dbo.Games),
+                      @image, CASE WHEN @image IS NULL THEN NULL ELSE SYSUTCDATETIME() END)`);
+    // Don't echo the picture back - the website reloads the list anyway
+    res.status(201).json({ id: r.recordset[0].id, ...game, hasImage: !!image });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Could not save game' });
@@ -125,11 +178,18 @@ app.post('/api/games', requireAdmin, async (req, res) => {
 app.put('/api/games/:id', requireAdmin, async (req, res) => {
   const id = parseInt(req.params.id, 10);
   if (!Number.isInteger(id)) return res.status(400).json({ error: 'Bad id' });
-  const { game, error } = clean(req.body || {});
+  const { game, image, removeImage, error } = clean(req.body || {});
   if (error) return res.status(400).json({ error });
+
+  // Picture part of the UPDATE: new picture, remove it, or leave it alone.
+  // (Fixed SQL pieces only - the picture itself always goes in as a parameter.)
+  let imageSql = '';
+  if (image) imageSql = ', Image=@image, ImageUpdatedAt=SYSUTCDATETIME()';
+  else if (removeImage) imageSql = ', Image=NULL, ImageUpdatedAt=NULL';
+
   try {
     const pool = await getPool();
-    const r = await pool.request()
+    const request = pool.request()
       .input('id', sql.Int, id)
       .input('name', sql.NVarChar(60), game.name)
       .input('genre', sql.NVarChar(40), game.genre || null)
@@ -137,9 +197,11 @@ app.put('/api/games/:id', requireAdmin, async (req, res) => {
       .input('year', sql.NVarChar(4), game.year || null)
       .input('desc', sql.NVarChar(240), game.desc || null)
       .input('color', sql.Char(7), game.color)
-      .input('shape', sql.VarChar(12), game.shape)
-      .query(`UPDATE dbo.Games SET Name=@name, Genre=@genre, Developer=@dev, ReleaseYear=@year,
-              Description=@desc, Color=@color, Pattern=@shape WHERE Id=@id`);
+      .input('shape', sql.VarChar(12), game.shape);
+    if (image) request.input('image', sql.VarChar(sql.MAX), image);
+
+    const r = await request.query(`UPDATE dbo.Games SET Name=@name, Genre=@genre, Developer=@dev, ReleaseYear=@year,
+              Description=@desc, Color=@color, Pattern=@shape${imageSql} WHERE Id=@id`);
     if (r.rowsAffected[0] === 0) return res.status(404).json({ error: 'Game not found' });
     res.json({ id, ...game });
   } catch (err) {

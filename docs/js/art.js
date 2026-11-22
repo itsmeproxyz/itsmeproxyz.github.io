@@ -1,7 +1,7 @@
 /* =====================================================================
    art.js — draws the pictures with <canvas> (no image files needed)
      drawCardArt(canvas, color, pattern) -> the pattern on each game card
-     drawHero()                          -> the striped background on Home
+     drawHero(t) + startHero()           -> the animated background on Home
    ===================================================================== */
 
 /** The 4 pattern names a game can use (must match the database CHECK rule). */
@@ -81,33 +81,70 @@ function drawCardArt(canvas, color, pattern) {
   }
 }
 
+/** true when the visitor asked their system for less motion (accessibility). */
+const REDUCED_MOTION = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/* Glowing "embers" that float up through the hero. Each one has a random
+   start position, speed, size and color, made once when the page loads. */
+const EMBERS = Array.from({ length: 34 }, () => ({
+  x: Math.random(),                 // 0..1 = left..right (scaled to the canvas width)
+  y: Math.random(),                 // 0..1 = top..bottom
+  r: 0.8 + Math.random() * 2.2,     // radius in px
+  speed: 0.015 + Math.random() * 0.04, // how fast it rises (canvas heights per second)
+  sway: Math.random() * Math.PI * 2,   // where it starts in its side-to-side wobble
+  teal: Math.random() < 0.3         // 30% teal, 70% orange
+}));
+
 /**
- * drawHero()
- * Draws diagonal orange stripes + a teal glow behind the big "proxyz"
- * title on Home, then fades the left side so the text stays readable.
- * Called on page load, when Home opens, and when the window resizes.
+ * drawHero(t)
+ * Draws the Home background: moving diagonal orange stripes, a slowly
+ * drifting teal glow, rising embers, then a dark fade on the left so the
+ * big "proxyz" title stays readable.
+ * t = time in seconds (0 = a still picture, used when motion is reduced).
  */
-function drawHero() {
+function drawHero(t = 0) {
   const canvas = document.getElementById('hero-canvas');
-  if (!canvas || !canvas.offsetWidth) return; // Home is hidden: nothing to draw
-  const w = canvas.width = canvas.offsetWidth;
-  const h = canvas.height = canvas.offsetHeight;
+  if (!canvas || !canvas.offsetWidth) return false; // Home is hidden: nothing to draw
+
+  // Only resize the canvas when the window size really changed (resizing clears it)
+  if (canvas.width !== canvas.offsetWidth || canvas.height !== canvas.offsetHeight) {
+    canvas.width = canvas.offsetWidth;
+    canvas.height = canvas.offsetHeight;
+  }
+  const w = canvas.width, h = canvas.height;
   const ctx = canvas.getContext('2d');
   ctx.clearRect(0, 0, w, h);
 
-  // Diagonal stripes
+  // Diagonal stripes, sliding to the right (the % 26 makes the loop seamless)
+  const shift = (t * 14) % 26;
   ctx.strokeStyle = 'rgba(255,122,61,.18)';
   ctx.lineWidth = 1;
-  for (let i = -h; i < w; i += 26) {
+  for (let i = -h - 26 + shift; i < w; i += 26) {
     ctx.beginPath(); ctx.moveTo(i, h); ctx.lineTo(i + h, 0); ctx.stroke();
   }
 
-  // Teal glow in the top-right
-  const glow = ctx.createRadialGradient(w * .8, h * .3, 10, w * .8, h * .3, w * .5);
-  glow.addColorStop(0, 'rgba(63,193,201,.25)');
+  // Teal glow in the top-right that drifts in a slow circle
+  const gx = w * (.8 + Math.sin(t * .35) * .06);
+  const gy = h * (.3 + Math.cos(t * .28) * .12);
+  const glow = ctx.createRadialGradient(gx, gy, 10, gx, gy, w * .5);
+  glow.addColorStop(0, 'rgba(63,193,201,.28)');
   glow.addColorStop(1, 'rgba(15,17,22,0)');
   ctx.fillStyle = glow;
   ctx.fillRect(0, 0, w, h);
+
+  // Embers: rise upward, wobble sideways, wrap back to the bottom
+  EMBERS.forEach(e => {
+    const y = ((e.y - t * e.speed) % 1 + 1) % 1;           // 0..1, loops forever
+    const x = e.x + Math.sin(t * .8 + e.sway) * .015;
+    const alpha = Math.min(1, y * 3) * .75;                 // fade out near the top
+    ctx.beginPath();
+    ctx.arc(x * w, y * h, e.r, 0, Math.PI * 2);
+    ctx.fillStyle = e.teal ? `rgba(63,193,201,${alpha})` : `rgba(255,140,80,${alpha})`;
+    ctx.shadowColor = e.teal ? '#3fc1c9' : '#ff7a3d';
+    ctx.shadowBlur = 8;
+    ctx.fill();
+  });
+  ctx.shadowBlur = 0;
 
   // Dark fade on the left so the title is easy to read
   const fade = ctx.createLinearGradient(0, 0, w, 0);
@@ -116,7 +153,25 @@ function drawHero() {
   fade.addColorStop(1, 'rgba(15,17,22,.2)');
   ctx.fillStyle = fade;
   ctx.fillRect(0, 0, w, h);
+  return true;
 }
 
-// Redraw the hero when the window size changes
-window.addEventListener('resize', drawHero);
+/* ---------- Hero animation loop ----------
+   requestAnimationFrame calls `frame` about 60 times a second while the
+   tab is visible (browsers pause it in background tabs, saving battery).
+   The loop stops by itself when Home is hidden; showView() starts it again. */
+let heroLoopId = null;
+
+function startHero() {
+  if (REDUCED_MOTION) { drawHero(0); return; }    // one still picture, no motion
+  if (heroLoopId) return;                          // already running
+  const start = performance.now();
+  const frame = now => {
+    if (!drawHero((now - start) / 1000)) { heroLoopId = null; return; } // Home hidden -> stop
+    heroLoopId = requestAnimationFrame(frame);
+  };
+  heroLoopId = requestAnimationFrame(frame);
+}
+
+// Redraw at the new size when the window changes (the loop keeps going by itself)
+window.addEventListener('resize', () => { if (REDUCED_MOTION) drawHero(0); });

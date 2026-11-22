@@ -4,6 +4,7 @@
    requests to the API, and the API runs the SQL.
 
      GET    /api/games          -> list all games      (anyone)
+     GET    /api/games/:id/image -> a game's picture   (anyone, used in <img>)
      POST   /api/games          -> add a game          (admin only)
      PUT    /api/games/:id      -> edit a game         (admin only)
      DELETE /api/games/:id      -> delete a game       (admin only)
@@ -64,7 +65,17 @@ async function apiRequest(method, path, body) {
 /** Get all games from the database. */
 function fetchGames() { return apiRequest('GET', '/api/games'); }
 
-/** Add a new game. `game` = { name, genre, dev, year, desc, color, shape } */
+/**
+ * gameImageUrl(game)
+ * Address of a game's uploaded picture, or '' if it has none.
+ * ?v=<last change> makes the browser fetch a fresh copy after a new upload.
+ */
+function gameImageUrl(game) {
+  if (!game || !game.hasImage || game.id == null) return '';
+  return API_BASE + '/api/games/' + encodeURIComponent(game.id) + '/image?v=' + encodeURIComponent(game.imageAt || 0);
+}
+
+/** Add a new game. `game` = { name, genre, dev, year, desc, color, shape, image?, removeImage? } */
 function createGame(game) { return apiRequest('POST', '/api/games', game); }
 
 /** Save changes to an existing game by its Id. */

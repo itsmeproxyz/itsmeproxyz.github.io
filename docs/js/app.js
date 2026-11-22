@@ -8,17 +8,25 @@
      5. Add / Edit form (modal)       -> openGameForm(), onSaveGame()
      6. Delete                        -> onDeleteClick()
      7. Admin login / logout          -> onLogin(), setAdmin(), logout()
-     8. Start-up                      -> runs when the page loads
-   Uses functions from api.js (fetchGames, createGame...) and
-   art.js (drawCardArt, drawHero, PATTERNS).
+     8. Card picture upload           -> onPickImage(), resizeImage()
+     9. Animations                    -> reveal on scroll, card tilt, count-up
+    10. Start-up                      -> runs when the page loads
+   Uses functions from api.js (fetchGames, createGame, gameImageUrl...) and
+   art.js (drawCardArt, startHero, PATTERNS, REDUCED_MOTION).
    ===================================================================== */
+
+// Tells style.css that JavaScript is running, so it can hide things that
+// JS will animate in (without JS, everything simply stays visible).
+document.documentElement.classList.add('js');
 
 /* ---------- Shared state ----------
    Plain variables the whole file reads and changes. */
 const state = {
-  games: [],        // the list currently shown on the page
-  isAdmin: false,   // true after a correct admin login
-  editingId: null   // Id of the game being edited (null = adding a new one)
+  games: [],          // the list currently shown on the page
+  isAdmin: false,     // true after a correct admin login
+  editingId: null,    // Id of the game being edited (null = adding a new one)
+  pendingImage: null, // new picture picked in the form (data URL), not saved yet
+  removeImage: false  // true when "Remove picture" was clicked in the form
 };
 
 /* Shown only if the API can't be reached, so the page is never empty. */
@@ -43,6 +51,9 @@ const gameForm = document.getElementById('game-form');
 const loginForm = document.getElementById('login-form');
 const formError = document.getElementById('form-error');
 const loginError = document.getElementById('login-error');
+const picInput = document.getElementById('f-image');
+const picPreview = document.getElementById('pic-preview');
+const btnRemovePic = document.getElementById('btn-remove-pic');
 
 // Bootstrap modal objects: .show() opens, .hide() closes
 const gameModal = new bootstrap.Modal(document.getElementById('gameModal'));
@@ -73,8 +84,9 @@ function showView() {
   const menu = document.getElementById('mainNav');
   if (menu.classList.contains('show')) bootstrap.Collapse.getOrCreateInstance(menu).hide();
 
-  if (name === 'home') drawHero();
+  if (name === 'home') startHero();   // animated background (art.js)
   window.scrollTo(0, 0);
+  watchReveals();                      // animate the new page's boxes in (section 9)
 }
 window.addEventListener('hashchange', showView);
 
@@ -91,8 +103,26 @@ function setNote(text, isError) {
 
 /** Updates the game count on Home and the "Library · N games" tag. */
 function updateCounts(n) {
-  document.getElementById('game-count').textContent = n;
+  countUp(document.getElementById('game-count'), n);
   document.getElementById('library-tag').textContent = 'Library · ' + n + (n === 1 ? ' game' : ' games');
+}
+
+/**
+ * countUp(element, target)
+ * Rolls a number up from its current value to `target` in ~0.8 s,
+ * like a score counter. Shows the final number right away if motion is reduced.
+ */
+function countUp(element, target) {
+  const from = parseInt(element.textContent, 10) || 0;
+  if (REDUCED_MOTION || from === target) { element.textContent = target; return; }
+  const start = performance.now();
+  const step = now => {
+    const p = Math.min(1, (now - start) / 800);          // progress 0..1
+    const eased = 1 - Math.pow(1 - p, 3);                 // fast start, soft landing
+    element.textContent = Math.round(from + (target - from) * eased);
+    if (p < 1) requestAnimationFrame(step);
+  };
+  requestAnimationFrame(step);
 }
 
 
@@ -118,19 +148,38 @@ function safeColor(c) {
 /**
  * buildCard(game, index)
  * Builds ONE Bootstrap card for a game and returns its column element.
- * Card parts: art (canvas + number + genre), title, description,
- * developer/year line, and Edit/Delete buttons when logged in as admin.
+ * Card parts: art (uploaded picture, or canvas pattern + number + genre),
+ * title, description, developer/year line, and Edit/Delete buttons
+ * when logged in as admin.
  */
 function buildCard(game, index) {
   const color = safeColor(game.color);
   const col = el('div', 'col');                 // grid column (see row-cols-* in index.html)
+  col.style.setProperty('--i', index);          // CSS uses it to delay each card's entrance a bit more
   const card = el('article', 'card game-card');
-  card.style.setProperty('--c', color);         // used by CSS for the art + hover border
+  card.style.setProperty('--c', color);         // used by CSS for the art + hover glow
 
   // -- Art --
   const art = el('div', 'game-art');
   const canvas = document.createElement('canvas');
-  art.append(canvas, el('span', 'num', '#' + String(index + 1).padStart(2, '0')));
+  art.append(canvas);
+
+  // Uploaded picture goes on top of the pattern. If it fails to load
+  // (deleted, offline...), we remove it and the pattern shows instead.
+  const imgUrl = gameImageUrl(game);
+  if (imgUrl) {
+    const img = document.createElement('img');
+    img.className = 'game-img';
+    img.alt = '';                 // decorative: the game name is right below
+    img.loading = 'lazy';         // only download when the card is near the screen
+    img.decoding = 'async';
+    img.addEventListener('load', () => img.classList.add('loaded'));  // fade in (CSS)
+    img.addEventListener('error', () => img.remove());
+    img.src = imgUrl;
+    art.append(img);
+  }
+
+  art.append(el('span', 'num', '#' + String(index + 1).padStart(2, '0')));
   if (game.genre) art.append(el('span', 'genre', game.genre));
 
   // -- Body --
@@ -159,10 +208,29 @@ function buildCard(game, index) {
 
   card.append(art, body);
   col.append(card);
+  addTilt(card);                                // 3D tilt that follows the mouse (section 9)
 
   // Draw after the canvas exists
   drawCardArt(canvas, color, PATTERNS.includes(game.shape) ? game.shape : 'rings');
   return col;
+}
+
+/**
+ * renderSkeletons(count)
+ * Shows grey placeholder cards with a moving shine while the list loads,
+ * so the page doesn't look empty or jump around.
+ */
+function renderSkeletons(count) {
+  grid.replaceChildren();
+  for (let i = 0; i < count; i++) {
+    const col = el('div', 'col');
+    col.style.setProperty('--i', i);
+    const card = el('div', 'card game-card skeleton');
+    card.setAttribute('aria-hidden', 'true');
+    card.append(el('div', 'sk-art'), el('div', 'sk-line'), el('div', 'sk-line short'));
+    col.append(card);
+    grid.append(col);
+  }
 }
 
 /** Clears the grid and draws a card for every game in `list`. */
@@ -192,6 +260,7 @@ function renderGames(list) {
  * - API down? shows the built-in FALLBACK_GAMES with a warning.
  */
 async function loadGames() {
+  if (!state.games.length) renderSkeletons(4);   // first load: placeholder cards
   const slowTimer = setTimeout(() => setNote('Still loading… the database may be waking up.', true), 8000);
   try {
     const list = await fetchGames();
@@ -227,6 +296,13 @@ function openGameForm(game) {
   field('f-color').value = game ? safeColor(game.color) : '#5a4fcf';
   field('f-shape').value = game && PATTERNS.includes(game.shape) ? game.shape : 'rings';
   field('f-desc').value = game ? game.desc || '' : '';
+
+  // Picture: start clean, then show the game's current picture (if any)
+  state.pendingImage = null;
+  state.removeImage = false;
+  picInput.value = '';
+  showPicPreview(gameImageUrl(game));
+
   gameForm.classList.remove('was-validated'); // hide old red error borders
   formError.classList.add('d-none');
   gameModal.show();
@@ -241,7 +317,9 @@ function readGameForm() {
     year: field('f-year').value.trim(),
     color: safeColor(field('f-color').value),
     shape: field('f-shape').value,
-    desc: field('f-desc').value.trim()
+    desc: field('f-desc').value.trim(),
+    image: state.pendingImage || undefined,   // only sent when a new picture was picked
+    removeImage: state.removeImage            // true = delete the saved picture
   };
 }
 
@@ -274,7 +352,10 @@ async function onSaveGame(event) {
       logout();
       setNote('Your admin key was rejected. Log in again.', true);
     } else {
-      formError.textContent = err.status === 400 ? err.message : 'Could not save. Is the API running?';
+      // 413 = the API said "too big" (a picture over its 1 MB limit)
+      formError.textContent = err.status === 400 ? err.message
+        : err.status === 413 ? 'That picture is too big. Try a smaller one.'
+        : 'Could not save. Is the API running?';
       formError.classList.remove('d-none');
     }
   } finally {
@@ -360,8 +441,147 @@ async function onLogin(event) {
 
 
 /* =====================================================================
-   8. START-UP — wire the buttons, show the right page, load games
+   8. CARD PICTURE UPLOAD
+   The picture is shrunk IN THE BROWSER before it's sent, so a 5 MB phone
+   photo becomes a ~30-150 KB WebP. That keeps the database small and
+   the site fast. The API double-checks type and size anyway.
    ===================================================================== */
+const PIC_MAX_W = 960;          // card art is never wider than this on screen
+const PIC_MAX_H = 600;
+const PIC_MAX_CHARS = 650000;   // stay under the API's limit (~500 KB picture)
+
+/** Shows a picture (URL or data URL) in the form's preview box, or the "No picture" text. */
+function showPicPreview(src) {
+  picPreview.replaceChildren();
+  if (src) {
+    const img = document.createElement('img');
+    img.alt = 'Card picture preview';
+    img.src = src;
+    picPreview.append(img);
+  } else {
+    picPreview.append(el('span', null, 'No picture yet – the pattern is used'));
+  }
+  btnRemovePic.classList.toggle('d-none', !src);
+}
+
+/**
+ * resizeImage(file)
+ * Loads the chosen file, scales it down to fit PIC_MAX_W x PIC_MAX_H
+ * (never up), and returns it as a WebP data URL (JPEG if the browser
+ * can't make WebP). Lowers the quality step by step if it's still too big.
+ */
+async function resizeImage(file) {
+  const bitmap = await createImageBitmap(file);   // decodes JPG/PNG/WebP
+  const scale = Math.min(1, PIC_MAX_W / bitmap.width, PIC_MAX_H / bitmap.height);
+  const canvas = document.createElement('canvas');
+  canvas.width = Math.round(bitmap.width * scale);
+  canvas.height = Math.round(bitmap.height * scale);
+  canvas.getContext('2d').drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+  bitmap.close();
+
+  for (const quality of [0.82, 0.7, 0.55, 0.4]) {
+    let url = canvas.toDataURL('image/webp', quality);
+    if (!url.startsWith('data:image/webp')) url = canvas.toDataURL('image/jpeg', quality); // old Safari
+    if (url.length <= PIC_MAX_CHARS) return url;
+  }
+  throw new Error('Picture is still too big after shrinking');
+}
+
+/** Runs when a file is chosen in the form. */
+async function onPickImage() {
+  const file = picInput.files[0];
+  formError.classList.add('d-none');
+  if (!file) return;
+  if (!/^image\/(jpeg|png|webp)$/.test(file.type)) {
+    picInput.value = '';
+    formError.textContent = 'Please choose a JPG, PNG or WebP picture.';
+    formError.classList.remove('d-none');
+    return;
+  }
+
+  const saveBtn = field('btn-save');
+  saveBtn.disabled = true;                       // wait until the picture is ready
+  picPreview.classList.add('busy');
+  try {
+    state.pendingImage = await resizeImage(file);
+    state.removeImage = false;
+    showPicPreview(state.pendingImage);
+  } catch (err) {
+    picInput.value = '';
+    formError.textContent = 'Could not read that picture. Try another one.';
+    formError.classList.remove('d-none');
+  } finally {
+    picPreview.classList.remove('busy');
+    saveBtn.disabled = false;
+  }
+}
+
+/** "Remove picture": forget a new pick and mark the saved one for deletion. */
+function onRemovePic() {
+  state.pendingImage = null;
+  state.removeImage = state.editingId != null;   // only matters when editing a saved game
+  picInput.value = '';
+  showPicPreview('');
+}
+
+
+/* =====================================================================
+   9. ANIMATIONS
+   Everything here is skipped when the visitor's system asks for
+   reduced motion (REDUCED_MOTION from art.js). CSS does the rest.
+   ===================================================================== */
+
+/* Reveal on scroll: elements with class "reveal" get "in" the first time
+   they appear on screen, and CSS slides/fades them in. */
+const revealObserver = ('IntersectionObserver' in window && !REDUCED_MOTION)
+  ? new IntersectionObserver(entries => {
+      entries.forEach(entry => {
+        if (!entry.isIntersecting) return;
+        entry.target.classList.add('in');
+        revealObserver.unobserve(entry.target);   // animate only once
+      });
+    }, { threshold: 0.15 })
+  : null;
+
+/** Starts watching every .reveal element that hasn't animated in yet. */
+function watchReveals() {
+  document.querySelectorAll('.reveal:not(.in)').forEach((elem, i) => {
+    elem.style.setProperty('--i', i % 3);         // small stagger inside each row
+    if (revealObserver) revealObserver.observe(elem);
+    else elem.classList.add('in');                // no observer / reduced motion: just show
+  });
+}
+
+/**
+ * addTilt(card)
+ * Tilts the card in 3D toward the mouse and moves a light spot under
+ * the cursor. Only on devices with a real mouse (not touch screens).
+ */
+const CAN_HOVER = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+
+function addTilt(card) {
+  if (REDUCED_MOTION || !CAN_HOVER) return;
+  card.addEventListener('pointermove', e => {
+    const r = card.getBoundingClientRect();
+    const x = (e.clientX - r.left) / r.width;     // 0 = left edge, 1 = right edge
+    const y = (e.clientY - r.top) / r.height;     // 0 = top, 1 = bottom
+    card.style.setProperty('--ry', ((x - 0.5) * 10).toFixed(2) + 'deg');   // max ±5°
+    card.style.setProperty('--rx', ((0.5 - y) * 10).toFixed(2) + 'deg');
+    card.style.setProperty('--mx', (x * 100).toFixed(1) + '%');           // light spot position
+    card.style.setProperty('--my', (y * 100).toFixed(1) + '%');
+  });
+  card.addEventListener('pointerleave', () => {
+    card.style.setProperty('--rx', '0deg');
+    card.style.setProperty('--ry', '0deg');
+  });
+}
+
+
+/* =====================================================================
+   10. START-UP — wire the buttons, show the right page, load games
+   ===================================================================== */
+picInput.addEventListener('change', onPickImage);
+btnRemovePic.addEventListener('click', onRemovePic);
 btnAdd.addEventListener('click', () => openGameForm(null));
 btnLogout.addEventListener('click', () => { logout(); setNote('Logged out.'); });
 gameForm.addEventListener('submit', onSaveGame);

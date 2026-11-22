@@ -19,6 +19,8 @@ BEGIN
         Pattern     VARCHAR(12)   NOT NULL CONSTRAINT DF_Games_Pattern DEFAULT ('rings'),
         SortOrder   INT           NOT NULL CONSTRAINT DF_Games_Sort DEFAULT (0),
         CreatedAt   DATETIME2     NOT NULL CONSTRAINT DF_Games_Created DEFAULT (SYSUTCDATETIME()),
+        Image          VARCHAR(MAX) NULL,   -- uploaded card picture (data URL), see add-images.sql
+        ImageUpdatedAt DATETIME2    NULL,   -- when the picture last changed
         CONSTRAINT CK_Games_Pattern CHECK (Pattern IN ('rings','mountains','shards','grid')),
         CONSTRAINT CK_Games_Color   CHECK (Color LIKE '#[0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F]')
     );
