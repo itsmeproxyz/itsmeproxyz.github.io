@@ -9,13 +9,28 @@ const sql = require('mssql');
 const crypto = require('crypto');
 
 const app = express();
+
+// --- Basic hardening ---
+app.set('trust proxy', 1);          // Azure sits in front -> req.ip is the real visitor IP
+app.disable('x-powered-by');        // don't advertise "Express"
+app.use((req, res, next) => {
+  res.set({
+    'X-Content-Type-Options': 'nosniff',     // browsers must trust our Content-Type (no guessing)
+    'X-Frame-Options': 'DENY',
+    'Referrer-Policy': 'no-referrer',
+    'Strict-Transport-Security': 'max-age=31536000; includeSubDomains'
+  });
+  next();
+});
+
 // 1 MB is enough for one resized card picture (the website shrinks it first)
 app.use(express.json({ limit: '1mb' }));
 
 // --- CORS: only your website may call this API from a browser ---
 const allowed = (process.env.FRONTEND_ORIGIN || '').split(',').map(s => s.trim()).filter(Boolean);
 app.use(cors({
-  origin: (origin, cb) => (!origin || allowed.includes(origin)) ? cb(null, true) : cb(new Error('Origin not allowed')),
+  // Unknown sites just get no CORS headers (the browser blocks them) instead of a 500 error page
+  origin: (origin, cb) => cb(null, !origin || allowed.includes(origin)),
   allowedHeaders: ['Content-Type', 'x-admin-key'],
   methods: ['GET', 'POST', 'PUT', 'DELETE']
 }));
@@ -48,12 +63,42 @@ function getPool() {
 }
 
 // --- Admin check for write routes ---
+if ((process.env.ADMIN_KEY || '').length < 32) {
+  console.warn('WARNING: ADMIN_KEY is shorter than 32 characters. Use a long random key.');
+}
+
+// Brute-force guard: after 10 wrong keys from one IP, that IP is blocked for 15 minutes.
+const MAX_FAILS = 10;
+const BLOCK_MS = 15 * 60 * 1000;
+const failedLogins = new Map(); // ip -> { count, until }
+
+function clientIp(req) {
+  // Azure may send "1.2.3.4:5678" - drop the port so every request from one IP counts together
+  return String(req.ip || '').replace(/^(\d+\.\d+\.\d+\.\d+):\d+$/, '$1');
+}
+
 function requireAdmin(req, res, next) {
-  const given = Buffer.from(String(req.get('x-admin-key') || ''));
-  const real = Buffer.from(String(process.env.ADMIN_KEY || ''));
-  if (real.length === 0 || given.length !== real.length || !crypto.timingSafeEqual(given, real)) {
+  const ip = clientIp(req);
+  const now = Date.now();
+  const rec = failedLogins.get(ip);
+  if (rec && rec.until > now && rec.count >= MAX_FAILS) {
+    return res.status(429).json({ error: 'Too many wrong keys. Try again in 15 minutes.' });
+  }
+
+  // Hash both sides so they are always the same length, then compare in constant time
+  const given = crypto.createHash('sha256').update(String(req.get('x-admin-key') || '')).digest();
+  const real = crypto.createHash('sha256').update(String(process.env.ADMIN_KEY || '')).digest();
+  if (!process.env.ADMIN_KEY || !crypto.timingSafeEqual(given, real)) {
+    const r = (rec && rec.until > now) ? rec : { count: 0, until: now + BLOCK_MS };
+    r.count++;
+    failedLogins.set(ip, r);
+    if (failedLogins.size > 5000) {                 // tidy up old entries so memory can't grow forever
+      for (const [k, v] of failedLogins) if (v.until <= now) failedLogins.delete(k);
+    }
     return res.status(401).json({ error: 'Wrong admin key' });
   }
+
+  failedLogins.delete(ip);
   next();
 }
 
@@ -315,6 +360,14 @@ app.put('/api/profile', requireAdmin, async (req, res) => {
     console.error(err);
     res.status(500).json({ error: 'Could not update profile' });
   }
+});
+
+// --- Last stop for errors (broken JSON, body too big, ...) ---
+// Sends a short JSON message instead of Express's default page with file paths in it.
+app.use((err, req, res, next) => {
+  const status = err.status || err.statusCode || 500;
+  if (status >= 500) console.error(err);
+  res.status(status).json({ error: status === 413 ? 'Request too big' : status < 500 ? 'Bad request' : 'Server error' });
 });
 
 const port = process.env.PORT || 3000;
