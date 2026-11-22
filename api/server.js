@@ -225,23 +225,38 @@ app.delete('/api/games/:id', requireAdmin, async (req, res) => {
 });
 
 // --- Profile (a single row, Id = 1) ---
+// The avatar (profile picture) is stored like the game pictures: a small
+// data URL in the database, served as a real image at /api/profile/avatar.
 function cleanProfile(body) {
   const s = (v, max) => (v == null ? '' : String(v).trim().slice(0, max));
-  return {
+  const profile = {
     tagline:   s(body.tagline, 60),
     location:  s(body.location, 60),
     mainGenre: s(body.mainGenre, 40),
     sideQuest: s(body.sideQuest, 40),
     bio:       s(body.bio, 1000)
   };
+
+  // Avatar (optional):
+  //   body.avatar       = 'data:image/webp;base64,...' -> save this new picture
+  //   body.removeAvatar = true                         -> delete the current picture
+  //   neither                                          -> keep whatever is there
+  const img = cleanImage(body.avatar);
+  if (img.error) return { error: img.error };
+  return { profile, avatar: img.value, removeAvatar: body.removeAvatar === true };
 }
+
+// The picture itself is NOT in this list; the website loads it from /api/profile/avatar.
+const PROFILE_COLS = `Tagline AS tagline, Location AS location, MainGenre AS mainGenre,
+  SideQuest AS sideQuest, Bio AS bio,
+  CAST(CASE WHEN Avatar IS NULL THEN 0 ELSE 1 END AS BIT) AS hasAvatar,
+  DATEDIFF_BIG(SECOND, '2000-01-01', AvatarUpdatedAt) AS avatarAt`;
 
 // Public: read profile
 app.get('/api/profile', async (req, res) => {
   try {
     const pool = await getPool();
-    const r = await pool.request().query(`SELECT Tagline AS tagline, Location AS location,
-      MainGenre AS mainGenre, SideQuest AS sideQuest, Bio AS bio FROM dbo.Profile WHERE Id = 1`);
+    const r = await pool.request().query(`SELECT ${PROFILE_COLS} FROM dbo.Profile WHERE Id = 1`);
     res.json(r.recordset[0] || {});
   } catch (err) {
     console.error(err);
@@ -249,21 +264,53 @@ app.get('/api/profile', async (req, res) => {
   }
 });
 
-// Admin: edit profile
-app.put('/api/profile', requireAdmin, async (req, res) => {
-  const p = cleanProfile(req.body || {});
+// Public: the profile picture as a real image file (used by <img src="...">)
+app.get('/api/profile/avatar', async (req, res) => {
   try {
     const pool = await getPool();
-    const r = await pool.request()
+    const r = await pool.request().query('SELECT Avatar FROM dbo.Profile WHERE Id = 1');
+    const dataUrl = r.recordset[0] && r.recordset[0].Avatar;
+    const m = dataUrl && IMAGE_RE.exec(dataUrl);
+    if (!m) return res.status(404).json({ error: 'No picture' });
+
+    res.set('Content-Type', 'image/' + m[1]);
+    // Same trick as the game pictures: the website adds ?v=<last change>.
+    res.set('Cache-Control', 'public, max-age=31536000, immutable');
+    res.send(Buffer.from(m[2], 'base64'));
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Could not load picture' });
+  }
+});
+
+// Admin: edit profile
+app.put('/api/profile', requireAdmin, async (req, res) => {
+  const { profile: p, avatar, removeAvatar, error } = cleanProfile(req.body || {});
+  if (error) return res.status(400).json({ error });
+
+  // Avatar part of the UPDATE: new picture, remove it, or leave it alone.
+  // (Fixed SQL pieces only - the picture itself always goes in as a parameter.)
+  let avatarSql = '';
+  if (avatar) avatarSql = ', Avatar=@avatar, AvatarUpdatedAt=SYSUTCDATETIME()';
+  else if (removeAvatar) avatarSql = ', Avatar=NULL, AvatarUpdatedAt=NULL';
+
+  try {
+    const pool = await getPool();
+    const request = pool.request()
       .input('tagline',   sql.NVarChar(60),   p.tagline   || null)
       .input('location',  sql.NVarChar(60),   p.location  || null)
       .input('mainGenre', sql.NVarChar(40),   p.mainGenre || null)
       .input('sideQuest', sql.NVarChar(40),   p.sideQuest || null)
-      .input('bio',       sql.NVarChar(1000), p.bio       || null)
-      .query(`UPDATE dbo.Profile SET Tagline=@tagline, Location=@location, MainGenre=@mainGenre,
-              SideQuest=@sideQuest, Bio=@bio, UpdatedAt=SYSUTCDATETIME() WHERE Id = 1`);
+      .input('bio',       sql.NVarChar(1000), p.bio       || null);
+    if (avatar) request.input('avatar', sql.VarChar(sql.MAX), avatar);
+
+    // Update, then send back the saved profile (incl. hasAvatar / avatarAt)
+    const r = await request.query(`UPDATE dbo.Profile SET Tagline=@tagline, Location=@location, MainGenre=@mainGenre,
+              SideQuest=@sideQuest, Bio=@bio, UpdatedAt=SYSUTCDATETIME()${avatarSql} WHERE Id = 1;
+      SELECT ${PROFILE_COLS} FROM dbo.Profile WHERE Id = 1;`);
     if (r.rowsAffected[0] === 0) return res.status(404).json({ error: 'Profile row missing - run profile.sql' });
-    res.json(p);
+    const saved = r.recordsets[r.recordsets.length - 1] || [];
+    res.json(saved[0] || p);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Could not update profile' });
