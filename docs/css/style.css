@@ -15,13 +15,13 @@
 /* ---------- 1. THEME: colors + fonts ----------
    Change a value here and it updates everywhere that uses var(--name). */
 :root {
-  --px-bg: #0f1116;        /* page background */
-  --px-panel: #171a22;     /* card / box background */
-  --px-line: #272c38;      /* borders */
-  --px-ink: #eef0f4;       /* main text */
-  --px-muted: #9097a6;     /* secondary text */
-  --px-accent: #ff7a3d;    /* orange: buttons, highlights */
-  --px-accent-2: #3fc1c9;  /* teal: tags, chips */
+  --px-bg: #0a0a0b;        /* page background (near black) */
+  --px-panel: #141416;     /* card / box background */
+  --px-line: #2a2a2e;      /* borders */
+  --px-ink: #f2f2f3;       /* main text */
+  --px-muted: #9c9ca3;     /* secondary text */
+  --px-accent: #e5182b;    /* red: buttons, highlights */
+  --px-accent-2: #ff5a66;  /* light red: tags, chips */
   --px-font-display: "Chakra Petch", "Segoe UI", sans-serif;
   --px-font-body: "Barlow", "Segoe UI", Roboto, sans-serif;
 
@@ -32,7 +32,7 @@
   --bs-border-color: var(--px-line);
   --bs-secondary-color: var(--px-muted);
   --bs-link-color: var(--px-accent);
-  --bs-link-hover-color: #ff9a68;
+  --bs-link-hover-color: #ff4b5a;
 }
 
 body { font-size: 17px; line-height: 1.6; }
@@ -51,18 +51,18 @@ h1, h2, h3, h4, h5, .navbar-brand {
 
 
 /* ---------- Custom button colors ----------
-   Bootstrap has .btn-primary etc. We add .btn-accent (filled orange)
-   and .btn-outline-accent (orange border) by setting Bootstrap's
+   Bootstrap has .btn-primary etc. We add .btn-accent (filled red)
+   and .btn-outline-accent (red border) by setting Bootstrap's
    button variables. */
 .btn-accent {
   --bs-btn-bg: var(--px-accent);
   --bs-btn-border-color: var(--px-accent);
-  --bs-btn-color: #0f1116;
-  --bs-btn-hover-bg: #ff925f;
-  --bs-btn-hover-border-color: #ff925f;
-  --bs-btn-hover-color: #0f1116;
-  --bs-btn-active-bg: #e5662b;
-  --bs-btn-active-border-color: #e5662b;
+  --bs-btn-color: #ffffff;
+  --bs-btn-hover-bg: #ff2e40;
+  --bs-btn-hover-border-color: #ff2e40;
+  --bs-btn-hover-color: #ffffff;
+  --bs-btn-active-bg: #b80f1f;
+  --bs-btn-active-border-color: #b80f1f;
   --bs-btn-disabled-bg: var(--px-accent);
   --bs-btn-disabled-border-color: var(--px-accent);
   font-family: var(--px-font-display);
@@ -74,7 +74,7 @@ h1, h2, h3, h4, h5, .navbar-brand {
   --bs-btn-color: var(--px-accent);
   --bs-btn-border-color: var(--px-accent);
   --bs-btn-hover-bg: var(--px-accent);
-  --bs-btn-hover-color: #0f1116;
+  --bs-btn-hover-color: #ffffff;
   --bs-btn-hover-border-color: var(--px-accent);
   font-family: var(--px-font-display);
   font-weight: 600;
@@ -85,12 +85,12 @@ h1, h2, h3, h4, h5, .navbar-brand {
 
 /* ---------- 2. NAVBAR + FOOTER ---------- */
 .site-nav {
-  background: rgba(15, 17, 22, .92);
+  background: rgba(10, 10, 11, .92);
   backdrop-filter: blur(8px);           /* frosted-glass effect when scrolling */
   border-bottom: 1px solid var(--px-line);
 }
 .logo { font-weight: 700; font-size: 22px; color: var(--px-ink); }
-.logo span { color: var(--px-accent); }  /* the orange "z" */
+.logo span { color: var(--px-accent); }  /* the red "z" */
 
 .site-nav .nav-link {
   font-family: var(--px-font-display);
@@ -103,8 +103,8 @@ h1, h2, h3, h4, h5, .navbar-brand {
   padding: 8px 14px !important;
 }
 .site-nav .nav-link:hover { color: var(--px-ink); }
-/* The current page's link (app.js adds .active) gets an orange pill */
-.site-nav .nav-link.active { background: var(--px-accent); color: var(--px-bg); }
+/* The current page's link (app.js adds .active) gets a red pill */
+.site-nav .nav-link.active { background: var(--px-accent); color: #ffffff; }
 
 .site-footer {
   border-top: 1px solid var(--px-line);
@@ -157,9 +157,9 @@ h1, h2, h3, h4, h5, .navbar-brand {
   font-size: 14px; font-weight: 600;
   padding: 5px 12px;
   border-radius: 999px;
-  background: rgba(63, 193, 201, .12);
+  background: rgba(229, 24, 43, .12);
   color: var(--px-accent-2);
-  border: 1px solid rgba(63, 193, 201, .3);
+  border: 1px solid rgba(229, 24, 43, .35);
 }
 
 /* Number boxes on Home */
@@ -173,11 +173,11 @@ h1, h2, h3, h4, h5, .navbar-brand {
 .stat-k { font-size: 13px; color: var(--px-muted); text-transform: uppercase; letter-spacing: .1em; }
 .stat-v { font-family: var(--px-font-display); font-size: 26px; font-weight: 700; margin-top: 4px; }
 
-/* Orange "P" square on the profile card */
+/* Red "P" square on the profile card */
 .badge-avatar {
   width: 96px; height: 96px;
   border-radius: 14px;
-  background: linear-gradient(135deg, var(--px-accent), #c24a1a);
+  background: linear-gradient(135deg, var(--px-accent), #6e0a14);
   display: grid; place-items: center;
   font-family: var(--px-font-display);
   font-weight: 700; font-size: 40px;
@@ -284,8 +284,8 @@ h1, h2, h3, h4, h5, .navbar-brand {
   z-index: -1;
   pointer-events: none;
   background:
-    radial-gradient(40% 35% at 20% 25%, rgba(255,122,61,.10), transparent 70%),
-    radial-gradient(35% 30% at 80% 70%, rgba(63,193,201,.09), transparent 70%);
+    radial-gradient(40% 35% at 20% 25%, rgba(229,24,43,.12), transparent 70%),
+    radial-gradient(35% 30% at 80% 70%, rgba(140,10,22,.14), transparent 70%);
   animation: bgDrift 24s ease-in-out infinite alternate;
 }
 @keyframes bgDrift {
@@ -301,7 +301,7 @@ h1, h2, h3, h4, h5, .navbar-brand {
   to   { opacity: 1; transform: none; }
 }
 
-/* Navbar links: smooth color change + a thin orange line growing on hover */
+/* Navbar links: smooth color change + a thin red line growing on hover */
 .site-nav .nav-link { position: relative; transition: color .2s ease, background-color .25s ease; }
 .site-nav .nav-link:not(.active)::after {
   content: "";
@@ -314,28 +314,28 @@ h1, h2, h3, h4, h5, .navbar-brand {
 
 /* Buttons: lift + glow on hover */
 .btn-accent, .btn-outline-accent { transition: transform .15s ease, box-shadow .2s ease, background-color .2s ease; }
-.btn-accent:hover, .btn-outline-accent:hover { transform: translateY(-2px); box-shadow: 0 8px 24px -8px var(--px-accent); }
+.btn-accent:hover, .btn-outline-accent:hover { transform: translateY(-2px); box-shadow: 0 8px 26px -8px rgba(229,24,43,.8); }
 .btn-accent:active, .btn-outline-accent:active { transform: translateY(0); }
 
-/* "Player online" tag: blinking green dot in front */
+/* "Player online" tag: blinking red "LIVE" dot in front */
 .tag-live::before {
   content: "";
   display: inline-block;
   width: 8px; height: 8px;
   margin-right: 8px;
   border-radius: 50%;
-  background: #3ddc84;
-  box-shadow: 0 0 0 0 rgba(61,220,132,.7);
+  background: #ff2e40;
+  box-shadow: 0 0 0 0 rgba(255,46,64,.7);
   vertical-align: 1px;
   animation: livePulse 1.8s ease-out infinite;
 }
 @keyframes livePulse {
-  0%   { box-shadow: 0 0 0 0 rgba(61,220,132,.7); }
-  100% { box-shadow: 0 0 0 9px rgba(61,220,132,0); }
+  0%   { box-shadow: 0 0 0 0 rgba(255,46,64,.7); }
+  100% { box-shadow: 0 0 0 9px rgba(255,46,64,0); }
 }
 
 /* Hero title: short "glitch" (RGB split + slices) every ~5 seconds.
-   ::before (teal) and ::after (orange) are copies of the text from data-text. */
+   ::before (bright red) and ::after (dark red) are copies of the text from data-text. */
 .glitch { position: relative; }
 .glitch::before, .glitch::after {
   content: attr(data-text);
@@ -343,8 +343,8 @@ h1, h2, h3, h4, h5, .navbar-brand {
   opacity: 0;
   pointer-events: none;
 }
-.glitch::before { color: var(--px-accent-2); animation: glitchA 5s infinite steps(1); }
-.glitch::after  { color: var(--px-accent);   animation: glitchB 5s infinite steps(1); }
+.glitch::before { color: #ff3b4b; animation: glitchA 5s infinite steps(1); }
+.glitch::after  { color: #7a0a15;   animation: glitchB 5s infinite steps(1); }
 @keyframes glitchA {
   0%, 89%, 100% { opacity: 0; transform: none; clip-path: inset(0 0 0 0); }
   90% { opacity: .8; transform: translate(-4px, 1px); clip-path: inset(10% 0 55% 0); }
@@ -383,8 +383,8 @@ h1, h2, h3, h4, h5, .navbar-brand {
 
 /* Stat boxes and panels: glow a little on hover */
 .stat-box, .panel-box { transition: border-color .25s ease, box-shadow .25s ease, transform .25s ease; }
-.stat-box:hover { border-color: rgba(255,122,61,.5); transform: translateY(-3px); box-shadow: 0 12px 30px -16px var(--px-accent); }
-.panel-box:hover { border-color: rgba(63,193,201,.35); }
+.stat-box:hover { border-color: rgba(229,24,43,.55); transform: translateY(-3px); box-shadow: 0 12px 30px -16px var(--px-accent); }
+.panel-box:hover { border-color: rgba(229,24,43,.35); }
 
 /* Profile avatar: slow shine sweeping across */
 .badge-avatar { position: relative; overflow: hidden; }
@@ -414,7 +414,7 @@ h1, h2, h3, h4, h5, .navbar-brand {
 .skeleton .sk-line { height: 14px; margin: 16px 20px 0; border-radius: 6px; }
 .skeleton .sk-line.short { width: 55%; }
 .skeleton .sk-art, .skeleton .sk-line {
-  background: linear-gradient(90deg, #1d212b 0%, #262b37 40%, #1d212b 80%);
+  background: linear-gradient(90deg, #1a1a1d 0%, #26262a 40%, #1a1a1d 80%);
   background-size: 300% 100%;
   animation: skShimmer 1.3s linear infinite;
 }
@@ -441,7 +441,7 @@ h1, h2, h3, h4, h5, .navbar-brand {
   text-align: center;
   font-size: 13px; color: var(--px-muted);
   padding: 0;
-  background: #12151c;
+  background: #111113;
   transition: opacity .2s ease;
 }
 .pic-preview span { padding: 0 12px; }

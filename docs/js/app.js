@@ -94,10 +94,10 @@ window.addEventListener('hashchange', showView);
 /* =====================================================================
    2. STATUS MESSAGES
    ===================================================================== */
-/** Writes a short message under the "My Games" title. isError = orange-red text. */
+/** Writes a short message under the "My Games" title. isError = red text. */
 function setNote(text, isError) {
   note.textContent = text || '';
-  note.classList.toggle('text-warning', !!isError);
+  note.classList.toggle('text-danger', !!isError);
   note.classList.toggle('text-secondary', !isError);
 }
 

@@ -23,7 +23,7 @@ function drawCardArt(canvas, color, pattern) {
   // Background gradient: card color (top-left) -> page background (bottom-right)
   const grad = ctx.createLinearGradient(0, 0, w, h);
   grad.addColorStop(0, color);
-  grad.addColorStop(1, '#0f1116');
+  grad.addColorStop(1, '#0a0a0b');
   ctx.fillStyle = grad;
   ctx.fillRect(0, 0, w, h);
 
@@ -92,13 +92,13 @@ const EMBERS = Array.from({ length: 34 }, () => ({
   r: 0.8 + Math.random() * 2.2,     // radius in px
   speed: 0.015 + Math.random() * 0.04, // how fast it rises (canvas heights per second)
   sway: Math.random() * Math.PI * 2,   // where it starts in its side-to-side wobble
-  teal: Math.random() < 0.3         // 30% teal, 70% orange
+  white: Math.random() < 0.25       // 25% white sparks, 75% red embers
 }));
 
 /**
  * drawHero(t)
- * Draws the Home background: moving diagonal orange stripes, a slowly
- * drifting teal glow, rising embers, then a dark fade on the left so the
+ * Draws the Home background: moving diagonal red stripes, a slowly
+ * drifting red glow, rising embers, then a dark fade on the left so the
  * big "proxyz" title stays readable.
  * t = time in seconds (0 = a still picture, used when motion is reduced).
  */
@@ -117,18 +117,18 @@ function drawHero(t = 0) {
 
   // Diagonal stripes, sliding to the right (the % 26 makes the loop seamless)
   const shift = (t * 14) % 26;
-  ctx.strokeStyle = 'rgba(255,122,61,.18)';
+  ctx.strokeStyle = 'rgba(229,24,43,.2)';
   ctx.lineWidth = 1;
   for (let i = -h - 26 + shift; i < w; i += 26) {
     ctx.beginPath(); ctx.moveTo(i, h); ctx.lineTo(i + h, 0); ctx.stroke();
   }
 
-  // Teal glow in the top-right that drifts in a slow circle
+  // Red glow in the top-right that drifts in a slow circle
   const gx = w * (.8 + Math.sin(t * .35) * .06);
   const gy = h * (.3 + Math.cos(t * .28) * .12);
   const glow = ctx.createRadialGradient(gx, gy, 10, gx, gy, w * .5);
-  glow.addColorStop(0, 'rgba(63,193,201,.28)');
-  glow.addColorStop(1, 'rgba(15,17,22,0)');
+  glow.addColorStop(0, 'rgba(229,24,43,.3)');
+  glow.addColorStop(1, 'rgba(10,10,11,0)');
   ctx.fillStyle = glow;
   ctx.fillRect(0, 0, w, h);
 
@@ -139,8 +139,8 @@ function drawHero(t = 0) {
     const alpha = Math.min(1, y * 3) * .75;                 // fade out near the top
     ctx.beginPath();
     ctx.arc(x * w, y * h, e.r, 0, Math.PI * 2);
-    ctx.fillStyle = e.teal ? `rgba(63,193,201,${alpha})` : `rgba(255,140,80,${alpha})`;
-    ctx.shadowColor = e.teal ? '#3fc1c9' : '#ff7a3d';
+    ctx.fillStyle = e.white ? `rgba(255,235,235,${alpha})` : `rgba(255,46,64,${alpha})`;
+    ctx.shadowColor = e.white ? '#ffffff' : '#e5182b';
     ctx.shadowBlur = 8;
     ctx.fill();
   });
@@ -148,9 +148,9 @@ function drawHero(t = 0) {
 
   // Dark fade on the left so the title is easy to read
   const fade = ctx.createLinearGradient(0, 0, w, 0);
-  fade.addColorStop(0, 'rgba(15,17,22,1)');
-  fade.addColorStop(.6, 'rgba(15,17,22,.6)');
-  fade.addColorStop(1, 'rgba(15,17,22,.2)');
+  fade.addColorStop(0, 'rgba(10,10,11,1)');
+  fade.addColorStop(.6, 'rgba(10,10,11,.6)');
+  fade.addColorStop(1, 'rgba(10,10,11,.2)');
   ctx.fillStyle = fade;
   ctx.fillRect(0, 0, w, h);
   return true;
