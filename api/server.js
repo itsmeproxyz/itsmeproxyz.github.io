@@ -224,5 +224,51 @@ app.delete('/api/games/:id', requireAdmin, async (req, res) => {
   }
 });
 
+// --- Profile (a single row, Id = 1) ---
+function cleanProfile(body) {
+  const s = (v, max) => (v == null ? '' : String(v).trim().slice(0, max));
+  return {
+    tagline:   s(body.tagline, 60),
+    location:  s(body.location, 60),
+    mainGenre: s(body.mainGenre, 40),
+    sideQuest: s(body.sideQuest, 40),
+    bio:       s(body.bio, 1000)
+  };
+}
+
+// Public: read profile
+app.get('/api/profile', async (req, res) => {
+  try {
+    const pool = await getPool();
+    const r = await pool.request().query(`SELECT Tagline AS tagline, Location AS location,
+      MainGenre AS mainGenre, SideQuest AS sideQuest, Bio AS bio FROM dbo.Profile WHERE Id = 1`);
+    res.json(r.recordset[0] || {});
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Could not load profile' });
+  }
+});
+
+// Admin: edit profile
+app.put('/api/profile', requireAdmin, async (req, res) => {
+  const p = cleanProfile(req.body || {});
+  try {
+    const pool = await getPool();
+    const r = await pool.request()
+      .input('tagline',   sql.NVarChar(60),   p.tagline   || null)
+      .input('location',  sql.NVarChar(60),   p.location  || null)
+      .input('mainGenre', sql.NVarChar(40),   p.mainGenre || null)
+      .input('sideQuest', sql.NVarChar(40),   p.sideQuest || null)
+      .input('bio',       sql.NVarChar(1000), p.bio       || null)
+      .query(`UPDATE dbo.Profile SET Tagline=@tagline, Location=@location, MainGenre=@mainGenre,
+              SideQuest=@sideQuest, Bio=@bio, UpdatedAt=SYSUTCDATETIME() WHERE Id = 1`);
+    if (r.rowsAffected[0] === 0) return res.status(404).json({ error: 'Profile row missing - run profile.sql' });
+    res.json(p);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Could not update profile' });
+  }
+});
+
 const port = process.env.PORT || 3000;
 app.listen(port, () => console.log(`proxyz API running on http://localhost:${port}`));
