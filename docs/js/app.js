@@ -189,7 +189,7 @@ function buildCard(game, index) {
 
   const meta = el('div', 'game-meta d-flex justify-content-between mt-auto');
   const dev = el('span', null, 'Dev '); dev.append(el('b', null, game.dev || '–'));
-  const year = el('span', null, 'Since '); year.append(el('b', null, game.year || '–'));
+  const year = el('span', null, 'Released '); year.append(el('b', null, game.year || '–'));
   meta.append(dev, year);
   body.append(meta);
 
