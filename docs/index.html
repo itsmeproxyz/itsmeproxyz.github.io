@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<!--
+  =====================================================================
+  proxyz – Game Profile
+  index.html = the STRUCTURE of the website (what is on the page).
+    - Looks (colors, fonts, spacing)  -> css/style.css (+ Bootstrap)
+    - Behaviour (loading games, forms) -> js/*.js
+  The site has 3 "pages" in one file: Home, My Profile, My Games.
+  Only one <section class="view"> is visible at a time; js/app.js
+  switches them based on the URL hash (#home, #profile, #games).
+  =====================================================================
+-->
+<html lang="en" data-bs-theme="dark"><!-- data-bs-theme="dark" = Bootstrap's built-in dark mode -->
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1"><!-- makes the site fit phone screens -->
+  <title>proxyz – Game Profile</title>
+
+  <!-- 1. Bootstrap CSS (grid, navbar, cards, buttons, modals...). Loaded from a CDN, pinned to 5.3.3. -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+
+  <!-- 2. Google Fonts: Chakra Petch (headings) + Barlow (body text) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=Barlow:wght@400;500;600&display=swap">
+
+  <!-- 3. Our own styles. Loaded AFTER Bootstrap so they can override it. -->
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <!-- ===================== NAVBAR (top menu) =====================
+       Bootstrap "navbar". On small screens the links fold into a
+       hamburger button (navbar-toggler) that opens #mainNav. -->
+  <nav class="navbar navbar-expand-md sticky-top site-nav">
+    <div class="container">
+      <a class="navbar-brand logo" href="#home">proxy<span>z</span></a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNav"
+              aria-controls="mainNav" aria-expanded="false" aria-label="Open menu">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="mainNav">
+        <!-- data-view tells app.js which page each link opens -->
+        <ul class="navbar-nav ms-auto gap-md-1">
+          <li class="nav-item"><a class="nav-link" href="#home" data-view="home">Home</a></li>
+          <li class="nav-item"><a class="nav-link" href="#profile" data-view="profile">My Profile</a></li>
+          <li class="nav-item"><a class="nav-link" href="#games" data-view="games">My Games</a></li>
+        </ul>
+      </div>
+    </div>
+  </nav>
+
+  <main>
+    <!-- ===================== PAGE 1: HOME ===================== -->
+    <section class="view" id="view-home" aria-label="Home">
+      <div class="hero">
+        <!-- Decorative background, drawn by drawHero() in js/art.js -->
+        <canvas id="hero-canvas" aria-hidden="true"></canvas>
+        <div class="container position-relative">
+          <span class="tag">Player online</span>
+          <h1 class="hero-title">proxy<span>z</span></h1>
+          <p class="hero-lead">Dimas from Bekasi. MMORPG grinder at heart, tactical shooter on the side. Welcome to my corner of the internet.</p>
+          <div class="d-flex flex-wrap gap-2">
+            <a class="btn btn-accent btn-lg" href="#games">Browse my games</a>
+            <a class="btn btn-outline-accent btn-lg" href="#profile">Meet the player</a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Bootstrap grid: row + col-md-4 = 3 columns on tablet/desktop, stacked on phones -->
+      <div class="container pb-5">
+        <div class="row g-3">
+          <div class="col-md-4">
+            <div class="stat-box">
+              <div class="stat-k">Games in library</div>
+              <!-- js/app.js writes the real number here (updateCounts) -->
+              <div class="stat-v" id="game-count">–</div>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="stat-box"><div class="stat-k">Favorite genre</div><div class="stat-v">MMORPG</div></div>
+          </div>
+          <div class="col-md-4">
+            <div class="stat-box"><div class="stat-k">Home base</div><div class="stat-v">Bekasi, ID</div></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================== PAGE 2: MY PROFILE ===================== -->
+    <section class="view" id="view-profile" aria-label="My profile">
+      <div class="container py-5">
+        <span class="tag mb-3">Player card</span>
+        <h1 class="page-title mb-4">My Profile</h1>
+
+        <div class="row g-4">
+          <!-- Left: player card (col-lg-4 = one third width on large screens) -->
+          <div class="col-lg-4">
+            <aside class="panel-box">
+              <div class="badge-avatar" aria-hidden="true">P</div>
+              <h2 class="h3 mt-3 mb-0">proxyz</h2>
+              <div class="text-secondary">Dimas</div>
+              <dl class="player-info mt-3 mb-0">
+                <dt>Location</dt><dd>Bekasi, Indonesia</dd>
+                <dt>Main genre</dt><dd>MMORPG</dd>
+                <dt>Side quest</dt><dd>Tactical FPS</dd>
+              </dl>
+            </aside>
+          </div>
+
+          <!-- Right: biography (col-lg-8 = two thirds width) -->
+          <div class="col-lg-8">
+            <article class="panel-box">
+              <h2 class="h4 text-accent mb-3">Biography</h2>
+              <p>I'm Dimas, but online everyone knows me as <strong>proxyz</strong>. I'm based in Bekasi, and when I'm not at my desk I'm usually logged into some other world.</p>
+              <p>MMORPGs are where I feel most at home. I love the huge open maps, the long grinds, the guild runs that somehow go way past midnight, and that one gear upgrade that finally drops after a hundred tries. There's nothing quite like watching a character grow from a nobody into someone the server recognizes.</p>
+              <p>When I need a quicker hit of adrenaline, I switch to tactical shooters. One clean headshot or a 1v3 clutch can make the whole night. Patient in the grind, sharp in the firefight: that's the proxyz way.</p>
+              <div class="d-flex flex-wrap gap-2 mt-3">
+                <span class="chip">MMORPG</span>
+                <span class="chip">Looter shooters</span>
+                <span class="chip">Tactical FPS</span>
+                <span class="chip">Late-night guild runs</span>
+              </div>
+            </article>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================== PAGE 3: MY GAMES ===================== -->
+    <section class="view" id="view-games" aria-label="My games">
+      <div class="container py-5">
+        <div class="d-flex flex-wrap justify-content-between align-items-end gap-3 mb-3">
+          <div>
+            <span class="tag mb-3" id="library-tag">Library</span>
+            <h1 class="page-title mb-0">My Games</h1>
+          </div>
+          <!-- Admin buttons. app.js shows/hides them with the "d-none" class. -->
+          <div class="d-flex flex-wrap gap-2">
+            <button class="btn btn-outline-secondary btn-sm" id="btn-login" type="button"
+                    data-bs-toggle="modal" data-bs-target="#loginModal">Admin login</button>
+            <button class="btn btn-outline-secondary btn-sm d-none" id="btn-logout" type="button">Log out</button>
+            <button class="btn btn-accent d-none" id="btn-add" type="button">+ Add game</button>
+          </div>
+        </div>
+
+        <!-- Status line (loading / saved / error). Filled by setNote() in app.js -->
+        <p class="small text-secondary mb-4" id="lib-note" role="status">Loading library…</p>
+
+        <!-- The game cards go here. renderGames() in app.js builds them.
+             row-cols-* = how many cards per row at each screen size. -->
+        <div class="row row-cols-1 row-cols-sm-2 row-cols-lg-4 g-4" id="grid"></div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">proxyz · Bekasi, Indonesia · GG WP</div>
+  </footer>
+
+  <!-- ===================== MODAL: Add / Edit game =====================
+       Bootstrap modal = a pop-up window. app.js opens it with
+       gameModal.show() and fills the inputs when editing. -->
+  <div class="modal fade" id="gameModal" tabindex="-1" aria-labelledby="gameModalTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+      <form class="modal-content" id="game-form" novalidate>
+        <div class="modal-header">
+          <h2 class="modal-title h5" id="gameModalTitle">Add a game</h2>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <div class="row g-3">
+            <div class="col-12">
+              <label for="f-name" class="form-label">Game name *</label>
+              <input id="f-name" class="form-control" required maxlength="60" placeholder="e.g. Lost Ark">
+              <div class="invalid-feedback">Give the game a name.</div>
+            </div>
+            <div class="col-md-6">
+              <label for="f-genre" class="form-label">Genre</label>
+              <input id="f-genre" class="form-control" maxlength="40" placeholder="e.g. MMORPG">
+            </div>
+            <div class="col-md-6">
+              <label for="f-dev" class="form-label">Developer</label>
+              <input id="f-dev" class="form-control" maxlength="40" placeholder="e.g. Smilegate">
+            </div>
+            <div class="col-md-4">
+              <label for="f-year" class="form-label">Release year</label>
+              <input id="f-year" class="form-control" inputmode="numeric" maxlength="4" pattern="\d{4}" placeholder="2019">
+              <div class="invalid-feedback">Use 4 digits, like 2019.</div>
+            </div>
+            <div class="col-md-4">
+              <label for="f-color" class="form-label">Card color</label>
+              <input id="f-color" type="color" class="form-control form-control-color w-100" value="#5a4fcf">
+            </div>
+            <div class="col-md-4">
+              <label for="f-shape" class="form-label">Card pattern</label>
+              <select id="f-shape" class="form-select">
+                <option value="rings">Rings</option>
+                <option value="mountains">Mountains</option>
+                <option value="shards">Shards</option>
+                <option value="grid">Crosshair grid</option>
+              </select>
+            </div>
+            <div class="col-12">
+              <label for="f-desc" class="form-label">Short description</label>
+              <textarea id="f-desc" class="form-control" rows="3" maxlength="240" placeholder="What do you love about it?"></textarea>
+            </div>
+          </div>
+          <!-- Error message inside the modal (hidden until needed) -->
+          <div class="alert alert-danger mt-3 mb-0 d-none" id="form-error" role="alert"></div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-accent" id="btn-save">Save game</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ===================== MODAL: Admin login ===================== -->
+  <div class="modal fade" id="loginModal" tabindex="-1" aria-labelledby="loginModalTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <form class="modal-content" id="login-form" novalidate>
+        <div class="modal-header">
+          <h2 class="modal-title h5" id="loginModalTitle">Admin login</h2>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <label for="f-key" class="form-label">Admin key</label>
+          <input id="f-key" type="password" class="form-control" autocomplete="current-password"
+                 placeholder="The ADMIN_KEY from api/.env">
+          <div class="alert alert-danger mt-3 mb-0 d-none" id="login-error" role="alert"></div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-accent">Log in</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ===================== SCRIPTS =====================
+       Order matters: each file uses things from the files above it.
+       1. Bootstrap JS (makes navbar toggle + modals work)
+       2. config.js  -> API address
+       3. api.js     -> functions that call the API
+       4. art.js     -> functions that draw the canvas pictures
+       5. app.js     -> everything else; starts the site -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="js/config.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/art.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

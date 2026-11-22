@@ -1,0 +1,240 @@
+/* =====================================================================
+   style.css — proxyz custom styles
+   Bootstrap gives us the layout, grid, buttons, modals and dark mode.
+   This file only adds the "proxyz look" on top:
+     1. Theme colors and fonts (CSS variables)
+     2. Navbar and footer
+     3. Pages (views) and the hero on Home
+     4. Reusable bits: tag, chip, stat box, panel box
+     5. Game cards
+   ===================================================================== */
+
+
+/* ---------- 1. THEME: colors + fonts ----------
+   Change a value here and it updates everywhere that uses var(--name). */
+:root {
+  --px-bg: #0f1116;        /* page background */
+  --px-panel: #171a22;     /* card / box background */
+  --px-line: #272c38;      /* borders */
+  --px-ink: #eef0f4;       /* main text */
+  --px-muted: #9097a6;     /* secondary text */
+  --px-accent: #ff7a3d;    /* orange: buttons, highlights */
+  --px-accent-2: #3fc1c9;  /* teal: tags, chips */
+  --px-font-display: "Chakra Petch", "Segoe UI", sans-serif;
+  --px-font-body: "Barlow", "Segoe UI", Roboto, sans-serif;
+
+  /* Tell Bootstrap to use our colors/fonts for its own components */
+  --bs-body-bg: var(--px-bg);
+  --bs-body-color: var(--px-ink);
+  --bs-body-font-family: var(--px-font-body);
+  --bs-border-color: var(--px-line);
+  --bs-secondary-color: var(--px-muted);
+  --bs-link-color: var(--px-accent);
+  --bs-link-hover-color: #ff9a68;
+}
+
+body { font-size: 17px; line-height: 1.6; }
+
+/* All headings use the display font */
+h1, h2, h3, h4, h5, .navbar-brand {
+  font-family: var(--px-font-display);
+  letter-spacing: .01em;
+  text-wrap: balance;
+}
+
+/* Visible keyboard focus (accessibility) */
+:focus-visible { outline: 2px solid var(--px-accent); outline-offset: 3px; }
+
+.text-accent { color: var(--px-accent) !important; }
+
+
+/* ---------- Custom button colors ----------
+   Bootstrap has .btn-primary etc. We add .btn-accent (filled orange)
+   and .btn-outline-accent (orange border) by setting Bootstrap's
+   button variables. */
+.btn-accent {
+  --bs-btn-bg: var(--px-accent);
+  --bs-btn-border-color: var(--px-accent);
+  --bs-btn-color: #0f1116;
+  --bs-btn-hover-bg: #ff925f;
+  --bs-btn-hover-border-color: #ff925f;
+  --bs-btn-hover-color: #0f1116;
+  --bs-btn-active-bg: #e5662b;
+  --bs-btn-active-border-color: #e5662b;
+  --bs-btn-disabled-bg: var(--px-accent);
+  --bs-btn-disabled-border-color: var(--px-accent);
+  font-family: var(--px-font-display);
+  font-weight: 600;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+}
+.btn-outline-accent {
+  --bs-btn-color: var(--px-accent);
+  --bs-btn-border-color: var(--px-accent);
+  --bs-btn-hover-bg: var(--px-accent);
+  --bs-btn-hover-color: #0f1116;
+  --bs-btn-hover-border-color: var(--px-accent);
+  font-family: var(--px-font-display);
+  font-weight: 600;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+}
+
+
+/* ---------- 2. NAVBAR + FOOTER ---------- */
+.site-nav {
+  background: rgba(15, 17, 22, .92);
+  backdrop-filter: blur(8px);           /* frosted-glass effect when scrolling */
+  border-bottom: 1px solid var(--px-line);
+}
+.logo { font-weight: 700; font-size: 22px; color: var(--px-ink); }
+.logo span { color: var(--px-accent); }  /* the orange "z" */
+
+.site-nav .nav-link {
+  font-family: var(--px-font-display);
+  font-weight: 600;
+  font-size: 14px;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--px-muted);
+  border-radius: 6px;
+  padding: 8px 14px !important;
+}
+.site-nav .nav-link:hover { color: var(--px-ink); }
+/* The current page's link (app.js adds .active) gets an orange pill */
+.site-nav .nav-link.active { background: var(--px-accent); color: var(--px-bg); }
+
+.site-footer {
+  border-top: 1px solid var(--px-line);
+  padding: 24px 0 40px;
+  color: var(--px-muted);
+  font-size: 14px;
+}
+
+
+/* ---------- 3. PAGES (views) + HERO ---------- */
+/* Every page is hidden by default; app.js adds .active to show one */
+.view { display: none; }
+.view.active { display: block; }
+
+.hero { position: relative; padding: 72px 0 56px; overflow: hidden; }
+/* The canvas fills the hero behind the text */
+.hero canvas {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%;
+  opacity: .5; pointer-events: none;
+}
+.hero-title {
+  font-size: clamp(56px, 12vw, 124px);  /* grows with screen width, between 56px and 124px */
+  line-height: .95;
+  font-weight: 700;
+  margin: 18px 0 12px;
+}
+.hero-title span { color: var(--px-accent); }
+.hero-lead { max-width: 52ch; color: var(--px-muted); font-size: 19px; margin-bottom: 28px; }
+
+.page-title { font-size: clamp(34px, 6vw, 52px); font-weight: 700; }
+
+
+/* ---------- 4. REUSABLE BITS ---------- */
+/* Small outlined label, e.g. "Player online", "Library · 4 games" */
+.tag {
+  display: inline-block;
+  font-family: var(--px-font-display);
+  font-size: 13px;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--px-accent-2);
+  border: 1px solid var(--px-accent-2);
+  padding: 4px 10px;
+  border-radius: 4px;
+}
+
+/* Rounded pill, e.g. "MMORPG" under the biography */
+.chip {
+  font-size: 14px; font-weight: 600;
+  padding: 5px 12px;
+  border-radius: 999px;
+  background: rgba(63, 193, 201, .12);
+  color: var(--px-accent-2);
+  border: 1px solid rgba(63, 193, 201, .3);
+}
+
+/* Number boxes on Home */
+.stat-box, .panel-box {
+  background: var(--px-panel);
+  border: 1px solid var(--px-line);
+  border-radius: 14px;
+  padding: 20px 24px;
+  height: 100%;
+}
+.stat-k { font-size: 13px; color: var(--px-muted); text-transform: uppercase; letter-spacing: .1em; }
+.stat-v { font-family: var(--px-font-display); font-size: 26px; font-weight: 700; margin-top: 4px; }
+
+/* Orange "P" square on the profile card */
+.badge-avatar {
+  width: 96px; height: 96px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, var(--px-accent), #c24a1a);
+  display: grid; place-items: center;
+  font-family: var(--px-font-display);
+  font-weight: 700; font-size: 40px;
+  color: var(--px-bg);
+}
+
+/* Label/value list on the profile card (Location, Main genre...) */
+.player-info { display: grid; grid-template-columns: auto 1fr; gap: 8px 14px; font-size: 15px; }
+.player-info dt { color: var(--px-muted); text-transform: uppercase; letter-spacing: .08em; font-size: 12px; padding-top: 3px; }
+.player-info dd { margin: 0; font-weight: 500; }
+
+.panel-box p { max-width: 65ch; }
+
+
+/* ---------- 5. GAME CARDS ----------
+   Each card sets its own --c (card color) from the database, in app.js. */
+.game-card {
+  background: var(--px-panel);
+  border: 1px solid var(--px-line);
+  border-radius: 14px;
+  overflow: hidden;
+  height: 100%;
+  transition: transform .2s ease, border-color .2s ease;
+}
+.game-card:hover { transform: translateY(-4px); border-color: var(--c); }
+
+/* Top picture area of the card */
+.game-art { height: 150px; position: relative; background: var(--c); }
+.game-art canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+.game-art .num, .game-art .genre {
+  position: absolute; left: 14px;
+  font-size: 12px; font-weight: 600;
+  letter-spacing: .1em; text-transform: uppercase;
+  color: #fff;
+  background: rgba(0, 0, 0, .45);
+  padding: 3px 9px; border-radius: 4px;
+}
+.game-art .num { top: 12px; font-family: var(--px-font-display); }
+.game-art .genre { bottom: 12px; }
+
+.game-card .card-title { font-size: 21px; }
+.game-card .card-text { color: var(--px-muted); font-size: 15px; }
+.game-meta {
+  font-size: 13px; color: var(--px-muted);
+  border-top: 1px solid var(--px-line);
+  padding-top: 10px;
+}
+.game-meta b { color: var(--px-ink); font-weight: 600; }
+
+/* Message shown when the library is empty */
+.empty-box {
+  text-align: center; color: var(--px-muted);
+  padding: 48px 0;
+  border: 1px dashed var(--px-line);
+  border-radius: 14px;
+}
+
+/* Turn off the hover animation for people who prefer less motion */
+@media (prefers-reduced-motion: reduce) {
+  .game-card { transition: none; }
+  .game-card:hover { transform: none; }
+}
