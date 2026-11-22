@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dimas Abimanyu – QA Engineer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;800&family=IBM+Plex+Mono:wght@400;500&family=Source+Sans+3:wght@400;600&display=swap" rel="stylesheet">
+<style>
+/* Layout idea: a QA test report. Each CV section is a "test case" with an ID and a PASS status; homepage = report cover, #cv = the full run. */
+:root{
+  --bg:#f3f5f4;
+  --surface:#ffffff;
+  --ink:#17201c;
+  --muted:#5b6862;
+  --line:#d9e0dc;
+  --accent:#1f6b4a;
+  --accent-soft:#e3f0e9;
+  --pass:#1f6b4a;
+  --font-display:"Archivo","Helvetica Neue",Arial,sans-serif;
+  --font-body:"Source Sans 3","Segoe UI",Roboto,sans-serif;
+  --font-mono:"IBM Plex Mono",ui-monospace,Consolas,monospace;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#111614;--surface:#18201c;--ink:#e6ece9;--muted:#9aa8a1;--line:#2a3530;
+    --accent:#6fcf9f;--accent-soft:#1d3329;--pass:#6fcf9f;color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#111614;--surface:#18201c;--ink:#e6ece9;--muted:#9aa8a1;--line:#2a3530;
+  --accent:#6fcf9f;--accent-soft:#1d3329;--pass:#6fcf9f;color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font-family:var(--font-body);font-size:17px;line-height:1.55}
+a{color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-radius:4px}
+h1,h2,h3{font-family:var(--font-display);text-wrap:balance;margin:0}
+.mono{font-family:var(--font-mono)}
+.wrap{max-width:960px;margin:0 auto;padding:0 20px}
+
+/* nav */
+header.nav{border-bottom:1px solid var(--line);background:var(--surface)}
+header.nav .wrap{display:flex;align-items:center;justify-content:space-between;gap:16px;min-height:60px;flex-wrap:wrap}
+.brand{font-family:var(--font-mono);font-size:14px;color:var(--muted);text-decoration:none}
+.brand b{color:var(--ink);font-weight:500}
+nav.links{display:flex;gap:6px}
+nav.links a{font-family:var(--font-mono);font-size:14px;text-decoration:none;color:var(--muted);padding:6px 12px;border-radius:6px}
+nav.links a[aria-current="page"]{background:var(--accent-soft);color:var(--accent)}
+
+.view{display:none}
+.view.active{display:block}
+
+/* home */
+.hero{padding:64px 0 40px;display:grid;grid-template-columns:auto 1fr;gap:32px;align-items:center}
+.avatar{width:132px;height:132px;border-radius:16px;background:var(--accent-soft);display:grid;place-items:center;position:relative;overflow:hidden}
+.avatar span{font-family:var(--font-display);font-weight:800;font-size:44px;color:var(--accent);filter:blur(0)}
+.avatar small{position:absolute;bottom:6px;left:0;right:0;text-align:center;font-family:var(--font-mono);font-size:10px;color:var(--muted)}
+.eyebrow{font-family:var(--font-mono);font-size:13px;color:var(--accent);letter-spacing:.04em;margin-bottom:8px}
+.hero h1{font-size:clamp(38px,6vw,60px);line-height:1.02;font-weight:800;letter-spacing:-.01em}
+.hero p.lead{color:var(--muted);max-width:58ch;margin:14px 0 22px}
+.btns{display:flex;gap:10px;flex-wrap:wrap}
+.btn{display:inline-block;font-family:var(--font-mono);font-size:14px;padding:11px 18px;border-radius:8px;text-decoration:none;border:1px solid var(--accent)}
+.btn.primary{background:var(--accent);color:var(--bg)}
+.btn.ghost{color:var(--accent)}
+
+.summary{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:8px 0 48px}
+.tile{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px}
+.tile .k{font-family:var(--font-mono);font-size:12px;color:var(--muted)}
+.tile .v{font-family:var(--font-display);font-weight:700;font-size:22px;margin-top:4px;font-variant-numeric:tabular-nums}
+
+.home-cols{display:grid;grid-template-columns:1.2fr 1fr;gap:20px;margin-bottom:64px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:22px}
+.card h2{font-size:18px;margin-bottom:10px}
+.card p{margin:0;color:var(--muted)}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{font-family:var(--font-mono);font-size:13px;padding:5px 10px;border-radius:999px;background:var(--accent-soft);color:var(--accent)}
+
+/* cv */
+.cv-head{padding:44px 0 24px;display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap;align-items:end;border-bottom:1px solid var(--line)}
+.cv-head h1{font-size:clamp(30px,5vw,44px);font-weight:800}
+.cv-head .role{color:var(--muted);margin-top:4px}
+.run{font-family:var(--font-mono);font-size:13px;color:var(--muted);text-align:right}
+.run b{color:var(--pass);font-weight:500}
+
+.contact{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:24px 0}
+.contact .item{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+.contact .k{font-family:var(--font-mono);font-size:12px;color:var(--muted)}
+
+.redacted{filter:blur(6px);user-select:none;-webkit-user-select:none;pointer-events:none;display:inline-block}
+.lock{font-family:var(--font-mono);font-size:11px;color:var(--muted);margin-left:6px}
+
+.tc{display:grid;grid-template-columns:160px 1fr;gap:24px;padding:28px 0;border-bottom:1px solid var(--line)}
+.tc-id{font-family:var(--font-mono);font-size:13px;color:var(--muted)}
+.tc-id h2{font-family:var(--font-display);font-size:20px;color:var(--ink);margin-top:4px}
+.status{display:inline-block;margin-top:8px;font-family:var(--font-mono);font-size:11px;padding:2px 8px;border-radius:4px;background:var(--accent-soft);color:var(--pass)}
+.status.private{background:transparent;border:1px dashed var(--line);color:var(--muted)}
+
+.skills{display:grid;grid-template-columns:repeat(2,1fr);gap:16px 28px}
+.skill .row{display:flex;justify-content:space-between;font-weight:600}
+.skill .row span:last-child{font-family:var(--font-mono);font-weight:400;color:var(--muted);font-variant-numeric:tabular-nums}
+.bar{height:6px;border-radius:3px;background:var(--line);margin-top:6px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--accent)}
+.soft{margin-top:20px}
+.soft h3{font-family:var(--font-mono);font-size:13px;font-weight:500;color:var(--muted);margin-bottom:10px}
+
+.job{display:grid;gap:4px}
+.job + .job{margin-top:22px}
+.job .top{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.job h3{font-size:18px}
+.job .when{font-family:var(--font-mono);font-size:13px;color:var(--muted)}
+.job .org{color:var(--accent);font-weight:600}
+.job p{margin:2px 0 0;color:var(--muted);max-width:65ch}
+
+dl.personal{display:grid;grid-template-columns:140px 1fr;gap:8px 16px;margin:0}
+dl.personal dt{font-family:var(--font-mono);font-size:13px;color:var(--muted);padding-top:2px}
+dl.personal dd{margin:0}
+
+footer{padding:32px 0 48px;font-family:var(--font-mono);font-size:12px;color:var(--muted)}
+
+@media (max-width:720px){
+  .hero{grid-template-columns:1fr;padding-top:40px}
+  .summary{grid-template-columns:repeat(2,1fr)}
+  .home-cols{grid-template-columns:1fr}
+  .contact{grid-template-columns:1fr}
+  .tc{grid-template-columns:1fr;gap:12px}
+  .skills{grid-template-columns:1fr}
+  .run{text-align:left}
+}
+@media (prefers-reduced-motion:no-preference){
+  .view.active{animation:fade .25s ease}
+  @keyframes fade{from{opacity:.4}to{opacity:1}}
+}
+</style>
+</head>
+<body>
+
+<header class="nav">
+  <div class="wrap">
+    <a class="brand" href="#home"><b>dimas.abimanyu</b> / qa</a>
+    <nav class="links" aria-label="Main">
+      <a href="#home" id="nav-home">Home</a>
+      <a href="#cv" id="nav-cv">CV</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <!-- HOME -->
+  <section class="view" id="view-home" aria-label="Home">
+    <div class="wrap">
+      <div class="hero">
+        <div class="avatar" aria-label="Profile photo hidden">
+          <span>DA</span>
+          <small>photo hidden</small>
+        </div>
+        <div>
+          <div class="eyebrow">QUALITY ASSURANCE ENGINEER</div>
+          <h1>Dimas Abimanyu</h1>
+          <p class="lead">Computer Science graduate who tests software so it does what the customer actually needs. Background in programming and networking, always keen to learn more and put what I studied to work.</p>
+          <div class="btns">
+            <a class="btn primary" href="#cv">View my CV</a>
+            <a class="btn ghost" href="#cv-experience">See experience</a>
+          </div>
+        </div>
+      </div>
+
+      <div class="summary">
+        <div class="tile"><div class="k">current role</div><div class="v">QA Engineer</div></div>
+        <div class="tile"><div class="k">degree</div><div class="v">S.Kom</div></div>
+        <div class="tile"><div class="k">GPA</div><div class="v">3.72 / 4.0</div></div>
+        <div class="tile"><div class="k">testing since</div><div class="v">Apr 2022</div></div>
+      </div>
+
+      <div class="home-cols">
+        <div class="card">
+          <h2>What I do</h2>
+          <p>Software testing at Nawa Data Solutions: checking that each product and release matches the customer's requirements before it ships. Test automation with Katalon Studio and Java.</p>
+        </div>
+        <div class="card">
+          <h2>Toolbox</h2>
+          <div class="chips">
+            <span class="chip">Katalon Studio</span>
+            <span class="chip">Java</span>
+            <span class="chip">MS Excel</span>
+            <span class="chip">MS Word</span>
+            <span class="chip">Networking</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CV -->
+  <section class="view" id="view-cv" aria-label="Curriculum vitae">
+    <div class="wrap">
+      <div class="cv-head">
+        <div>
+          <h1>Dimas Abimanyu</h1>
+          <div class="role">Quality Assurance Engineer</div>
+        </div>
+        <div class="run">CV run · 6 cases<br><b>5 passed</b> · 1 private</div>
+      </div>
+
+      <div class="contact" aria-label="Contact details (hidden)">
+        <div class="item"><div class="k">location</div><span class="redacted" aria-hidden="true">Kota Contoh, Jawa 00000</span><span class="lock">hidden</span></div>
+        <div class="item"><div class="k">email</div><span class="redacted" aria-hidden="true">nama.contoh@mail.com</span><span class="lock">hidden</span></div>
+        <div class="item"><div class="k">phone</div><span class="redacted" aria-hidden="true">+62 800-0000-0000</span><span class="lock">hidden</span></div>
+      </div>
+
+      <div class="tc">
+        <div class="tc-id">TC-01<h2>About</h2><span class="status">PASS</span></div>
+        <p style="margin:0;max-width:65ch">Fresh graduate who enjoys all kinds of work in information technology, especially programming and computer networking. Wants to dig deeper into IT, gain hands-on experience, and apply what I learned at university.</p>
+      </div>
+
+      <div class="tc">
+        <div class="tc-id">TC-02<h2>Skills</h2><span class="status">PASS</span></div>
+        <div>
+          <div class="skills">
+            <div class="skill"><div class="row"><span>Katalon Studio</span><span>75%</span></div><div class="bar"><i style="width:75%"></i></div></div>
+            <div class="skill"><div class="row"><span>Java</span><span>60%</span></div><div class="bar"><i style="width:60%"></i></div></div>
+            <div class="skill"><div class="row"><span>MS Word</span><span>80%</span></div><div class="bar"><i style="width:80%"></i></div></div>
+            <div class="skill"><div class="row"><span>MS Excel</span><span>50%</span></div><div class="bar"><i style="width:50%"></i></div></div>
+          </div>
+          <div class="soft">
+            <h3>personal skills</h3>
+            <div class="chips">
+              <span class="chip">Problem solving</span>
+              <span class="chip">Critical thinking</span>
+              <span class="chip">Time management</span>
+              <span class="chip">Teamwork</span>
+              <span class="chip">Eager to learn and grow</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="tc" id="cv-experience">
+        <div class="tc-id">TC-03<h2>Experience</h2><span class="status">PASS</span></div>
+        <div>
+          <div class="job">
+            <div class="top"><h3>QA Engineer</h3><span class="when">11 Apr 2022 – present</span></div>
+            <div class="org">Nawa Data Solutions</div>
+            <p>Software testing: making sure the products and software we deliver match the customer's requirements.</p>
+          </div>
+          <div class="job">
+            <div class="top"><h3>Networking Assistant</h3><span class="when">2020</span></div>
+            <div class="org">Ibnu Hajar Mandiri</div>
+            <p>Assisted with installing the internet and data network at Ibnu Hajar Mandiri school.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="tc">
+        <div class="tc-id">TC-04<h2>Education</h2><span class="status">PASS</span></div>
+        <div class="job">
+          <div class="top"><h3>Bachelor of Computer Science (S.Kom)</h3><span class="when">2017 – 2021</span></div>
+          <div class="org">Universitas Respati Indonesia, Jakarta</div>
+          <p>GPA 3.72 on a 4.0 scale.</p>
+        </div>
+      </div>
+
+      <div class="tc">
+        <div class="tc-id">TC-05<h2>Hobbies</h2><span class="status">PASS</span></div>
+        <div class="chips"><span class="chip">Programming</span><span class="chip">Swimming</span></div>
+      </div>
+
+      <div class="tc">
+        <div class="tc-id">TC-06<h2>Personal data</h2><span class="status private">PRIVATE</span></div>
+        <dl class="personal" aria-label="Personal data (hidden)">
+          <dt>date of birth</dt><dd><span class="redacted" aria-hidden="true">00 bulan 0000</span><span class="lock">hidden</span></dd>
+          <dt>religion</dt><dd><span class="redacted" aria-hidden="true">Contoh</span><span class="lock">hidden</span></dd>
+          <dt>weight</dt><dd><span class="redacted" aria-hidden="true">00 kg</span><span class="lock">hidden</span></dd>
+          <dt>height</dt><dd><span class="redacted" aria-hidden="true">000 cm</span><span class="lock">hidden</span></dd>
+          <dt>marital status</dt><dd><span class="redacted" aria-hidden="true">Contoh</span><span class="lock">hidden</span></dd>
+        </dl>
+      </div>
+
+      <footer>Personal and contact details are hidden on this page. Available on request.</footer>
+    </div>
+  </section>
+</main>
+
+<script>
+(function(){
+  var views={home:document.getElementById('view-home'),cv:document.getElementById('view-cv')};
+  var navs={home:document.getElementById('nav-home'),cv:document.getElementById('nav-cv')};
+  function route(){
+    var h=(location.hash||'#home').slice(1);
+    var target=null;
+    if(h.indexOf('cv')===0){target='cv';}else{target='home';}
+    Object.keys(views).forEach(function(k){
+      views[k].classList.toggle('active',k===target);
+      if(k===target){navs[k].setAttribute('aria-current','page');}else{navs[k].removeAttribute('aria-current');}
+    });
+    if(h!=='cv' && h!=='home' && document.getElementById(h)){document.getElementById(h).scrollIntoView();}
+    else{window.scrollTo(0,0);}
+  }
+  window.addEventListener('hashchange',route);
+  route();
+})();
+</script>
+</body>
+</html>
