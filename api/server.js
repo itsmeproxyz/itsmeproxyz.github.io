@@ -68,7 +68,7 @@ if ((process.env.ADMIN_KEY || '').length < 32) {
 }
 
 // Brute-force guard: after 10 wrong keys from one IP, that IP is blocked for 15 minutes.
-const MAX_FAILS = 10;
+const MAX_FAILS = 3;
 const BLOCK_MS = 15 * 60 * 1000;
 const failedLogins = new Map(); // ip -> { count, until }
 
