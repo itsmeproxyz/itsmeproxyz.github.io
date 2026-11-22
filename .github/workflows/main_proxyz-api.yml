@@ -7,6 +7,9 @@ on:
   push:
     branches:
       - 'main'
+    paths:                                   # only redeploy when the API changes
+      - 'api/**'
+      - '.github/workflows/main_proxyz-api.yml'
   workflow_dispatch:
 
 jobs:
@@ -14,6 +17,9 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read #This is required for actions/checkout
+    defaults:
+      run:
+        working-directory: api   # our API lives in the api/ folder, not the repo root
 
     steps:
       - uses: actions/checkout@v4
@@ -33,7 +39,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: node-app
-          path: .
+          path: api   # upload only the api/ folder (server.js, package.json, node_modules)
 
   deploy:
     runs-on: ubuntu-latest
