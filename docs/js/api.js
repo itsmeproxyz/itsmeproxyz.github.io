@@ -86,3 +86,9 @@ function deleteGame(id) { return apiRequest('DELETE', '/api/games/' + encodeURIC
 
 /** Ask the API whether the saved admin key is correct. Resolves if yes, throws 401 if not. */
 function checkAdminKey() { return apiRequest('GET', '/api/admin/check'); }
+
+/** Get the profile (anyone). */
+function fetchProfile() { return apiRequest('GET', '/api/profile'); }
+
+/** Save the profile (admin only). `p` = { tagline, location, mainGenre, sideQuest, bio } */
+function updateProfile(p) { return apiRequest('PUT', '/api/profile', p); }
