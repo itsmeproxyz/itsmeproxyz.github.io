@@ -362,6 +362,9 @@ app.put('/api/profile', requireAdmin, async (req, res) => {
   }
 });
 
+// --- Unknown address -> short JSON instead of Express's default page ---
+app.use((req, res) => res.status(404).json({ error: 'Not found' }));
+
 // --- Last stop for errors (broken JSON, body too big, ...) ---
 // Sends a short JSON message instead of Express's default page with file paths in it.
 app.use((err, req, res, next) => {
