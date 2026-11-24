@@ -42,6 +42,7 @@ The `api/` folder is a small Express server that sits in between and keeps the d
 | `database/azure-create-user.sql` | Creates the limited `proxyz_app` user on Azure SQL | SSMS |
 | `database/create-login.sql` | Same idea for a **local** SQL Server Express (not used on Azure) | SSMS, local |
 | `database/add-images.sql` | Adds the game picture columns to `dbo.Games` | SSMS |
+| `database/add-link.sql` | Adds the official website column to `dbo.Games` | SSMS |
 | `database/profile.sql` | Creates `dbo.Profile` (1 row) with the profile text | SSMS |
 | `database/profile-avatar.sql` | Adds the profile picture columns to `dbo.Profile` | SSMS |
 | `database/manage-games.sql` | Handy queries to view/add/edit/delete games by hand | SSMS |
@@ -52,6 +53,7 @@ The `api/` folder is a small Express server that sits in between and keeps the d
 - **Three pages in one file** (Home, My Profile, My Games), switched by the URL hash (`#home`, `#profile`, `#games`).
 - **Game library from the database** – cards with genre, developer, year, description, a color and a pattern.
 - **Card pictures** – upload a JPG/PNG/WebP; the browser shrinks it (max 960×600, WebP) before saving. No picture = the pattern art.
+- **Official website links** – give a game a link and its whole card opens that site in a new tab. Only `http`/`https` addresses are accepted.
 - **Editable profile** – tagline, location, main genre, side quest and biography, saved in `dbo.Profile`.
 - **Profile picture** – cropped to a square and shrunk to 256×256 in the browser. No picture = the red "P" badge.
 - **Admin mode** – one secret key (`ADMIN_KEY`), no visitor accounts. Visitors can only read.
@@ -102,8 +104,9 @@ Run in this order:
 1. `database/schema.sql` – creates `dbo.Games` + the first 4 games
 2. `database/azure-create-user.sql` – creates `proxyz_app` (**change the password on line 19 first**)
 3. `database/add-images.sql` – game picture columns
-4. `database/profile.sql` – creates `dbo.Profile` with the profile text
-5. `database/profile-avatar.sql` – profile picture columns
+4. `database/add-link.sql` – official website column (skipped automatically if `schema.sql` already made it)
+5. `database/profile.sql` – creates `dbo.Profile` with the profile text
+6. `database/profile-avatar.sql` – profile picture columns
 
 Then in the Azure portal → SQL server **proxyz → Security → Networking**:
 - tick **Allow Azure services and resources to access this server** (so the API can connect)
@@ -171,6 +174,7 @@ Uploading through the GitHub website: repo main page → **Add file → Upload f
 - **My Games → Admin login** → type your `ADMIN_KEY`. The key is kept only while the tab is open.
 - **+ Add game / Edit / Delete** appear. Delete asks "Sure?" – click again to confirm.
 - **Card picture**: in the Add/Edit form choose a JPG/PNG/WebP. **Remove picture** goes back to the pattern.
+- **Official website**: in the Add/Edit form type the game's address. Visitors open it by clicking the card; empty = not clickable.
 - **My Profile → Edit profile** (only while logged in): text, biography (empty line = new paragraph) and profile picture.
 - Forgot the key? App Service → Environment variables → change `ADMIN_KEY` → **Apply**. Nothing in the database is lost.
 
@@ -199,3 +203,4 @@ Uploading through the GitHub website: repo main page → **Add file → Upload f
 | **v3 – Editable profile** | `dbo.Profile`, `GET/PUT /api/profile`, `profile.js`, Edit profile pop-up, `data-profile` tags in `index.html` | `profile.sql` |
 | **v4 – Profile picture** | `GET /api/profile/avatar`, avatar upload (square 256×256) in Edit profile | `profile-avatar.sql` |
 | **v5 – Black & red theme + docs** | Orange/teal theme replaced by black & red (CSS variables, canvas art, glitch, LIVE dot); all docs merged into this README | none |
+| **v6 – Official website links** | `Link` column, Official website field in the Add/Edit form, clickable game cards | `add-link.sql` |
