@@ -67,7 +67,7 @@ if ((process.env.ADMIN_KEY || '').length < 32) {
   console.warn('WARNING: ADMIN_KEY is shorter than 32 characters. Use a long random key.');
 }
 
-// Brute-force guard: after 10 wrong keys from one IP, that IP is blocked for 15 minutes.
+// Brute-force guard: after 3 wrong keys from one IP, that IP is blocked for 15 minutes.
 const MAX_FAILS = 3;
 const BLOCK_MS = 15 * 60 * 1000;
 const failedLogins = new Map(); // ip -> { count, until }
