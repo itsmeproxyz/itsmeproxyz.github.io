@@ -146,11 +146,29 @@ function safeColor(c) {
 }
 
 /**
+ * safeLink(text)
+ * Returns a full web address ("warframe.com" -> "https://warframe.com/"),
+ * or '' if it isn't one. Only http/https is allowed, so a "javascript:..."
+ * link can never end up on a card.
+ */
+function safeLink(text) {
+  const t = String(text || '').trim();
+  if (!t) return '';
+  try {
+    const u = new URL(/^[a-z][a-z0-9+.-]*:\/\//i.test(t) ? t : 'https://' + t);
+    if (u.protocol !== 'https:' && u.protocol !== 'http:') return '';
+    if (u.username || u.password || !u.hostname.includes('.')) return '';
+    return u.href;
+  } catch (e) { return ''; }
+}
+
+/**
  * buildCard(game, index)
  * Builds ONE Bootstrap card for a game and returns its column element.
  * Card parts: art (uploaded picture, or canvas pattern + number + genre),
  * title, description, developer/year line, and Edit/Delete buttons
- * when logged in as admin.
+ * when logged in as admin. If the game has an official website, the
+ * whole card is a link to it (opens in a new tab).
  */
 function buildCard(game, index) {
   const color = safeColor(game.color);
@@ -184,7 +202,21 @@ function buildCard(game, index) {
 
   // -- Body --
   const body = el('div', 'card-body d-flex flex-column gap-2');
-  body.append(el('h3', 'card-title mb-0', game.name || 'Untitled'));
+  const title = el('h3', 'card-title mb-0');
+  const link = safeLink(game.link);
+  if (link) {
+    // Bootstrap's "stretched-link" makes the whole card clickable
+    const a = el('a', 'card-link-full stretched-link', game.name || 'Untitled');
+    a.href = link;
+    a.target = '_blank';
+    a.rel = 'noopener noreferrer';   // the other site can't control or track this tab
+    a.append(el('span', 'visually-hidden', ' – official website, opens in a new tab'));
+    title.append(a);
+    card.classList.add('has-link');
+  } else {
+    title.textContent = game.name || 'Untitled';
+  }
+  body.append(title);
   if (game.desc) body.append(el('p', 'card-text mb-0', game.desc));
 
   const meta = el('div', 'game-meta d-flex justify-content-between mt-auto');
@@ -195,7 +227,7 @@ function buildCard(game, index) {
 
   // -- Admin buttons (only for real database rows, which have an id) --
   if (state.isAdmin && game.id != null) {
-    const actions = el('div', 'd-flex gap-2');
+    const actions = el('div', 'card-actions d-flex gap-2');   // sits above the card link (CSS)
     const editBtn = el('button', 'btn btn-sm btn-outline-secondary', 'Edit');
     editBtn.type = 'button';
     editBtn.addEventListener('click', () => openGameForm(game));
@@ -295,6 +327,8 @@ function openGameForm(game) {
   field('f-year').value = game ? game.year || '' : '';
   field('f-color').value = game ? safeColor(game.color) : '#5a4fcf';
   field('f-shape').value = game && PATTERNS.includes(game.shape) ? game.shape : 'rings';
+  field('f-link').value = game ? game.link || '' : '';
+  field('f-link').setCustomValidity('');
   field('f-desc').value = game ? game.desc || '' : '';
 
   // Picture: start clean, then show the game's current picture (if any)
@@ -317,10 +351,20 @@ function readGameForm() {
     year: field('f-year').value.trim(),
     color: safeColor(field('f-color').value),
     shape: field('f-shape').value,
+    link: field('f-link').value.trim(),       // '' = no link
     desc: field('f-desc').value.trim(),
     image: state.pendingImage || undefined,   // only sent when a new picture was picked
     removeImage: state.removeImage            // true = delete the saved picture
   };
+}
+
+/** Completes the typed website address ("warframe.com" -> "https://...") or marks it as wrong. */
+function checkLinkField() {
+  const input = field('f-link');
+  const typed = input.value.trim();
+  const link = safeLink(typed);
+  if (link) input.value = link;
+  input.setCustomValidity(typed && (!link || link.length > 300) ? 'Not a web address' : '');
 }
 
 /**
@@ -332,6 +376,7 @@ function readGameForm() {
  */
 async function onSaveGame(event) {
   event.preventDefault();                     // stop the browser's own form submit
+  checkLinkField();
   gameForm.classList.add('was-validated');    // turn on Bootstrap validation styles
   if (!gameForm.checkValidity()) return;      // a required/pattern rule failed
 
@@ -585,6 +630,7 @@ btnRemovePic.addEventListener('click', onRemovePic);
 btnAdd.addEventListener('click', () => openGameForm(null));
 btnLogout.addEventListener('click', () => { logout(); setNote('Logged out.'); });
 gameForm.addEventListener('submit', onSaveGame);
+field('f-link')?.addEventListener('input', e => e.target.setCustomValidity('')); // clear the error while typing
 loginForm.addEventListener('submit', onLogin);
 // Put the cursor in the key box when the login pop-up opens
 document.getElementById('loginModal').addEventListener('shown.bs.modal', () => field('f-key').focus());
