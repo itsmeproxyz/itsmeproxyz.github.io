@@ -21,6 +21,7 @@ BEGIN
         CreatedAt   DATETIME2     NOT NULL CONSTRAINT DF_Games_Created DEFAULT (SYSUTCDATETIME()),
         Image          VARCHAR(MAX) NULL,   -- uploaded card picture (data URL), see add-images.sql
         ImageUpdatedAt DATETIME2    NULL,   -- when the picture last changed
+        Link        NVARCHAR(300) NULL,     -- official website, opens when the card is clicked
         CONSTRAINT CK_Games_Pattern CHECK (Pattern IN ('rings','mountains','shards','grid')),
         CONSTRAINT CK_Games_Color   CHECK (Color LIKE '#[0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F]')
     );
