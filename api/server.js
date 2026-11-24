@@ -124,7 +124,32 @@ function clean(body) {
   //   neither                                    -> keep whatever is there
   const img = cleanImage(body.image);
   if (img.error) return { error: img.error };
-  return { game: g, image: img.value, removeImage: body.removeImage === true };
+
+  // Official website (optional):
+  //   body.link = 'https://...' -> save it
+  //   body.link = ''            -> remove it
+  //   not sent at all           -> keep whatever is there
+  const link = cleanLink(body.link);
+  if (link.error) return { error: link.error };
+  return { game: g, image: img.value, removeImage: body.removeImage === true, link: link.value };
+}
+
+/* ---------- Official website link ----------
+   Only normal web addresses. This blocks "javascript:..." links, which
+   would run code in a visitor's browser when they click the card. */
+const MAX_LINK_CHARS = 300;
+
+function cleanLink(v) {
+  if (v === undefined) return { value: undefined };             // not sent: keep the current link
+  if (v === null || v === '') return { value: null };           // emptied: remove the link
+  const bad = { error: 'Official website must be a web address like https://example.com' };
+  if (typeof v !== 'string') return bad;
+  let u;
+  try { u = new URL(v.trim()); } catch (e) { return bad; }
+  if (u.protocol !== 'https:' && u.protocol !== 'http:') return bad;
+  if (u.username || u.password || !u.hostname.includes('.')) return bad;
+  if (u.href.length > MAX_LINK_CHARS) return { error: 'Official website address is too long (max 300 characters)' };
+  return { value: u.href };
 }
 
 /* ---------- Pictures ----------
@@ -155,7 +180,16 @@ app.get('/api/health', (req, res) => res.json({ ok: true }));
 app.get('/api/games', async (req, res) => {
   try {
     const pool = await getPool();
-    const r = await pool.request().query(`SELECT ${SELECT_COLS} FROM dbo.Games ORDER BY SortOrder, Id`);
+    const list = cols => pool.request().query(`SELECT ${cols} FROM dbo.Games ORDER BY SortOrder, Id`);
+    let r;
+    try {
+      r = await list(SELECT_COLS + ', Link AS link');
+    } catch (err) {
+      // add-link.sql not run on this database yet: show the list without links
+      if (!/Invalid column name 'Link'/i.test(err.message)) throw err;
+      console.warn('dbo.Games has no Link column - run database/add-link.sql');
+      r = await list(SELECT_COLS);
+    }
     res.json(r.recordset);
   } catch (err) {
     console.error(err);
@@ -192,7 +226,7 @@ app.get('/api/admin/check', requireAdmin, (req, res) => res.json({ ok: true }));
 
 // Admin: add game
 app.post('/api/games', requireAdmin, async (req, res) => {
-  const { game, image, error } = clean(req.body || {});
+  const { game, image, link, error } = clean(req.body || {});
   if (error) return res.status(400).json({ error });
   try {
     const pool = await getPool();
@@ -205,14 +239,15 @@ app.post('/api/games', requireAdmin, async (req, res) => {
       .input('color', sql.Char(7), game.color)
       .input('shape', sql.VarChar(12), game.shape)
       .input('image', sql.VarChar(sql.MAX), image)   // null = no picture
+      .input('link', sql.NVarChar(300), link || null)   // null = card not clickable
       .query(`INSERT INTO dbo.Games (Name, Genre, Developer, ReleaseYear, Description, Color, Pattern, SortOrder,
-                                     Image, ImageUpdatedAt)
+                                     Image, ImageUpdatedAt, Link)
               OUTPUT INSERTED.Id AS id
               VALUES (@name, @genre, @dev, @year, @desc, @color, @shape,
                       (SELECT ISNULL(MAX(SortOrder), 0) + 1 FROM dbo.Games),
-                      @image, CASE WHEN @image IS NULL THEN NULL ELSE SYSUTCDATETIME() END)`);
+                      @image, CASE WHEN @image IS NULL THEN NULL ELSE SYSUTCDATETIME() END, @link)`);
     // Don't echo the picture back - the website reloads the list anyway
-    res.status(201).json({ id: r.recordset[0].id, ...game, hasImage: !!image });
+    res.status(201).json({ id: r.recordset[0].id, ...game, link: link || null, hasImage: !!image });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Could not save game' });
@@ -223,7 +258,7 @@ app.post('/api/games', requireAdmin, async (req, res) => {
 app.put('/api/games/:id', requireAdmin, async (req, res) => {
   const id = parseInt(req.params.id, 10);
   if (!Number.isInteger(id)) return res.status(400).json({ error: 'Bad id' });
-  const { game, image, removeImage, error } = clean(req.body || {});
+  const { game, image, removeImage, link, error } = clean(req.body || {});
   if (error) return res.status(400).json({ error });
 
   // Picture part of the UPDATE: new picture, remove it, or leave it alone.
@@ -231,6 +266,9 @@ app.put('/api/games/:id', requireAdmin, async (req, res) => {
   let imageSql = '';
   if (image) imageSql = ', Image=@image, ImageUpdatedAt=SYSUTCDATETIME()';
   else if (removeImage) imageSql = ', Image=NULL, ImageUpdatedAt=NULL';
+
+  // Same idea for the link: only touch the column when the form sent one.
+  const linkSql = link !== undefined ? ', Link=@link' : '';
 
   try {
     const pool = await getPool();
@@ -244,9 +282,10 @@ app.put('/api/games/:id', requireAdmin, async (req, res) => {
       .input('color', sql.Char(7), game.color)
       .input('shape', sql.VarChar(12), game.shape);
     if (image) request.input('image', sql.VarChar(sql.MAX), image);
+    if (link !== undefined) request.input('link', sql.NVarChar(300), link);
 
     const r = await request.query(`UPDATE dbo.Games SET Name=@name, Genre=@genre, Developer=@dev, ReleaseYear=@year,
-              Description=@desc, Color=@color, Pattern=@shape${imageSql} WHERE Id=@id`);
+              Description=@desc, Color=@color, Pattern=@shape${imageSql}${linkSql} WHERE Id=@id`);
     if (r.rowsAffected[0] === 0) return res.status(404).json({ error: 'Game not found' });
     res.json({ id, ...game });
   } catch (err) {
