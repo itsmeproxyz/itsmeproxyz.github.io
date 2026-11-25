@@ -113,6 +113,25 @@ h1, h2, h3, h4, h5, .navbar-brand {
   font-size: 14px;
 }
 
+/* Contact links in the footer (Instagram, Steam, email) */
+.contact-list {
+  display: flex; flex-wrap: wrap;
+  gap: 4px 22px;
+  list-style: none;
+  margin: 0; padding: 0;
+}
+.contact-link {
+  display: inline-flex; align-items: center;
+  gap: 8px;
+  min-height: 40px;                /* comfortable to tap on phones */
+  color: var(--px-muted);
+  text-decoration: none;
+  transition: color .2s ease;
+}
+.contact-link svg { width: 20px; height: 20px; flex: none; transition: transform .2s ease; }
+.contact-link:hover { color: var(--px-accent-2); }
+.contact-link:hover svg { transform: translateY(-2px); }
+
 
 /* ---------- 3. PAGES (views) + HERO ---------- */
 /* Every page is hidden by default; app.js adds .active to show one */
